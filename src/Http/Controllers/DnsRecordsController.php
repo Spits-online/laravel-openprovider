@@ -13,7 +13,7 @@ class DnsRecordsController
 {
     public function show(string $domain, DnsService $service)
     {
-        $options = request()->get('options', ['with_records' => 'true']);
+        $options = request()->input('options', ['with_records' => 'true']);
 
         $response = $service->getDnsZone($domain, $options);
 
@@ -65,7 +65,7 @@ class DnsRecordsController
 
     public function export(string $domain, DnsService $service)
     {
-        $options = request()->get('options', ['with_records' => 'true']);
+        $options = request()->input('options', ['with_records' => 'true']);
 
         $response = $service->getDnsZone($domain, $options);
         $data = $response->collect();
