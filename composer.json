@@ -30,7 +30,7 @@
         "larastan/larastan": "^3.0",
         "orchestra/testbench": "^10.3||^11.0",
         "pestphp/pest": "^3.0||^4.0",
-        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-arch": "^4.0",
         "phpstan/extension-installer": "^1.3",
         "phpstan/phpstan-deprecation-rules": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0"
