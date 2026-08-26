@@ -37,9 +37,17 @@ This package is designed to make communication between [Laravel](https://laravel
 
 ### Prerequisites
 Before installing this package, ensure your system meets the following requirements:
-- **PHP**: Version `^8.3`
-- **Laravel**: Version  `^11.0`, `^12.0`
+- **PHP**: Version `^8.2`, `^8.3`, `^8.4`, `^8.5`
+- **Laravel**: Version  `^11.0`, `^12.0`, `^13.0`
 - **Openprovider Account**
+
+> **Laravel Excel compatibility**
+>
+> The `.xlsx` export works with both `maatwebsite/excel` `^3.1` and `^4.0`; Composer resolves
+> whichever major fits your platform. Be aware that `^3.1` cannot be installed on PHP 8.5 (its
+> `phpoffice/phpspreadsheet` 1.x dependency caps at `<8.5`), and `^4.0` requires PHP 8.3+ with
+> Laravel 12+. PHP 8.5 therefore needs Laravel 12 or 13. Require `maatwebsite/excel` explicitly in
+> your own `composer.json` if you want to stay on one specific major.
 
 ### Step-by-Step Installation
 1. Add the package to your Laravel project using Composer:
