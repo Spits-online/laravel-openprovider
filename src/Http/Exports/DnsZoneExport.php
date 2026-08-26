@@ -2,6 +2,8 @@
 
 namespace Spits\LaravelOpenproviderApi\Http\Exports;
 
+use Illuminate\Support\Collection;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -15,16 +17,18 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class DnsZoneExport implements FromCollection, WithColumnFormatting, WithEvents, WithHeadings, WithMapping, WithStyles
 {
-    protected $collection;
+    protected Enumerable $collection;
 
     protected $columns = 5;
 
     public function __construct($collection)
     {
-        $this->collection = $collection;
+        $this->collection = $collection instanceof Enumerable
+            ? $collection
+            : Collection::make($collection);
     }
 
-    public function collection()
+    public function collection(): Enumerable
     {
         return $this->collection;
     }
@@ -40,7 +44,7 @@ class DnsZoneExport implements FromCollection, WithColumnFormatting, WithEvents,
         ];
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         return [
             1 => [
