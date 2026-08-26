@@ -17,7 +17,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest]
-        php: [8.4, 8.3, 8.2]
+        php: [8.5, 8.4, 8.3, 8.2]
         laravel: [11.*, 12.*, 13.*]
         stability: [prefer-lowest, prefer-stable]
         include:
@@ -34,6 +34,10 @@ jobs:
           # Laravel 13 requires PHP 8.3+
           - laravel: 13.*
             php: 8.2
+          # PHP 8.5 has no resolvable set on Laravel 11: maatwebsite/excel 3.x cannot install
+          # on 8.5 (phpspreadsheet 1.x caps at <8.5) and 4.x requires Laravel 12+.
+          - laravel: 11.*
+            php: 8.5
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
 
