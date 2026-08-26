@@ -3,6 +3,7 @@
 namespace Spits\LaravelOpenproviderApi\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Maatwebsite\Excel\ExcelServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use Spits\LaravelOpenproviderApi\LaravelOpenproviderApiServiceProvider;
 
@@ -20,6 +21,7 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app)
     {
         return [
+            ExcelServiceProvider::class,
             LaravelOpenproviderApiServiceProvider::class,
         ];
     }
