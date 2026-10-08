@@ -74,6 +74,14 @@ Openprovider has a sandbox for trying things without buying anything. Point the 
 OPENPROVIDER_BASE_URL=http://api.sandbox.openprovider.nl:8480/v1beta
 ```
 
+### Dates and timezones
+
+Dates such as `$domain->expirationDate` and `$zone->createdAt` are immutable Carbon instances. Openprovider sends them without an offset (`2026-09-27 07:03:04`) and doesn't document their timezone, so the package reads them in your app's timezone. Set another one if you know Openprovider's dates are in it:
+
+```env
+OPENPROVIDER_TIMEZONE=Europe/Amsterdam
+```
+
 ### How the login works
 
 The package logs in on the first request and caches the token for 47 hours. Openprovider's tokens are valid for 48, so a cached token never expires mid-request. Each account has its own cached token, and a failed login caches nothing.
@@ -188,7 +196,7 @@ $domain->id;           // 1222095
 $domain->status;       // "ACT" (active) or "REQ" (requested)
 $domain->autorenew;    // Autorenew::OFF
 $domain->nameServers;  // list<Nameserver>
-$domain->renewalDate;  // "2026-09-27 07:03:04", as Openprovider sends it
+$domain->renewalDate;  // CarbonImmutable, see "Dates and timezones"
 $domain->raw;          // the full answer from Openprovider
 ```
 

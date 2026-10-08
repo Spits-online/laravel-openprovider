@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace SpitsOnline\Openprovider\Data;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Fluent;
 use SpitsOnline\Openprovider\Concerns\ListsFromArray;
+use SpitsOnline\Openprovider\Concerns\ReadsDates;
 use SpitsOnline\Openprovider\Enums\ZoneType;
 
 /**
  * A DNS zone as Openprovider returns it. `$records` is empty unless the zone was
- * fetched with its records; `$raw` holds the full payload.
+ * fetched with its records. Dates are read in `openprovider.timezone` (see
+ * `ReadsDates`); `$raw` holds the full payload.
  */
 final readonly class Zone
 {
     use ListsFromArray;
+    use ReadsDates;
 
     /**
      * @param  list<Record>  $records
@@ -27,8 +31,8 @@ final readonly class Zone
         public bool $isActive,
         public ?string $provider,
         public array $records,
-        public ?string $createdAt,
-        public ?string $modifiedAt,
+        public ?CarbonInterface $createdAt,
+        public ?CarbonInterface $modifiedAt,
         public array $raw,
     ) {}
 
@@ -46,8 +50,8 @@ final readonly class Zone
             isActive: $data->boolean('active'),
             provider: $data->string('provider')->value() ?: null,
             records: Record::listFrom($data->array('records')),
-            createdAt: $data->string('creation_date')->value() ?: null,
-            modifiedAt: $data->string('modification_date')->value() ?: null,
+            createdAt: self::date($data, 'creation_date'),
+            modifiedAt: self::date($data, 'modification_date'),
             raw: $payload,
         );
     }
@@ -66,8 +70,8 @@ final readonly class Zone
             'active' => $this->isActive,
             'provider' => $this->provider,
             'records' => array_map(fn (Record $record) => $record->toArray(), $this->records),
-            'creation_date' => $this->createdAt,
-            'modification_date' => $this->modifiedAt,
+            'creation_date' => $this->createdAt?->format(self::DATE_FORMAT),
+            'modification_date' => $this->modifiedAt?->format(self::DATE_FORMAT),
         ];
     }
 }

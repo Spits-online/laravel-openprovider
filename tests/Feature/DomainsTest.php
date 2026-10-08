@@ -28,8 +28,9 @@ it('finds a domain', function () {
         ->adminHandle->toBe('CV904717-NL')
         ->techHandle->toBe('CV904717-NL')
         ->billingHandle->toBe('CV904717-NL')
-        ->expirationDate->toBe('2022-09-27 07:03:04')
-        ->renewalDate->toBe('2022-09-27 07:03:04')
+        ->and($domain->expirationDate->format('Y-m-d H:i:s'))->toBe('2022-09-27 07:03:04')
+        ->and($domain->renewalDate->format('Y-m-d H:i:s'))->toBe('2022-09-27 07:03:04')
+        ->and($domain)
         ->raw->toHaveKey('ns_group', 'testin')
         ->and((string) $domain->name)->toBe('greatdomain1.info')
         ->and($domain->nameServers)->toEqual([
@@ -110,7 +111,7 @@ it('registers a domain', function () {
         attributes: ['promo_code' => 'SPRING'],
     );
 
-    expect($domain)->id->toBe(10592139)->status->toBe('ACT')->expirationDate->toBe('2020-04-29 17:15:19')
+    expect($domain)->id->toBe(10592139)->status->toBe('ACT')->and($domain->expirationDate->format('Y-m-d H:i:s'))->toBe('2020-04-29 17:15:19')
         ->and((string) $domain->name)->toBe('greatdomain.info');
 
     Http::assertSent(fn (Request $request) => $request->method() === 'POST' && $request->url() === DOMAINS && $request->data() === [

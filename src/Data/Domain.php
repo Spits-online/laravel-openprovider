@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace SpitsOnline\Openprovider\Data;
 
+use Carbon\CarbonInterface;
 use Illuminate\Support\Fluent;
 use SpitsOnline\Openprovider\Concerns\ListsFromArray;
+use SpitsOnline\Openprovider\Concerns\ReadsDates;
 use SpitsOnline\Openprovider\Enums\Autorenew;
 
 /**
- * A domain as Openprovider returns it. Dates are kept exactly as Openprovider sends
- * them (`2026-05-01 12:00:00`); `$raw` holds the full payload.
+ * A domain as Openprovider returns it. Dates are read in `openprovider.timezone`
+ * (see `ReadsDates`); `$raw` holds the full payload.
  */
 final readonly class Domain
 {
     use ListsFromArray;
+    use ReadsDates;
 
     /**
      * @param  ?string  $status  Openprovider's status code, e.g. `ACT` (active) or `REQ` (requested)
@@ -33,8 +36,8 @@ final readonly class Domain
         public ?string $adminHandle,
         public ?string $techHandle,
         public ?string $billingHandle,
-        public ?string $expirationDate,
-        public ?string $renewalDate,
+        public ?CarbonInterface $expirationDate,
+        public ?CarbonInterface $renewalDate,
         public array $raw,
     ) {}
 
@@ -57,8 +60,8 @@ final readonly class Domain
             adminHandle: $data->string('admin_handle')->value() ?: null,
             techHandle: $data->string('tech_handle')->value() ?: null,
             billingHandle: $data->string('billing_handle')->value() ?: null,
-            expirationDate: $data->string('expiration_date')->value() ?: null,
-            renewalDate: $data->string('renewal_date')->value() ?: null,
+            expirationDate: self::date($data, 'expiration_date'),
+            renewalDate: self::date($data, 'renewal_date'),
             raw: $payload,
         );
     }

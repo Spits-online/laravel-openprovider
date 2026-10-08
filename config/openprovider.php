@@ -33,6 +33,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Openprovider sends dates without an offset (`2026-05-01 12:00:00`) and
+    | doesn't document their timezone. They are read in this timezone, or in
+    | the app's timezone when it isn't set.
+    |
+    */
+
+    'timezone' => env('OPENPROVIDER_TIMEZONE'),
+
+    /*
+    |--------------------------------------------------------------------------
     | DNS record routes
     |--------------------------------------------------------------------------
     |
