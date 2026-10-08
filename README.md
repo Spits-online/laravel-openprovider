@@ -306,7 +306,7 @@ $domain = Openprovider::domains()->create(
 );
 ```
 
-Name servers are names, or `Nameserver` objects when they need a glue IP (`ip`, `ip6`). Pass `nsGroup` instead to use a name server group from your Openprovider account.
+Name servers are names, or `Nameserver` objects when they need a glue IP (`ip`, `ip6`). `Nameserver::from()` turns either into a `Nameserver`. Pass `nsGroup` instead to use a name server group from your Openprovider account.
 
 To transfer a domain in, use `transfer()` with the same arguments, except `period`, plus its `authCode`:
 

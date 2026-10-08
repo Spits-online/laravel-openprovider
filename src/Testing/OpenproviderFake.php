@@ -71,6 +71,13 @@ class OpenproviderFake extends Openprovider
         return new FakeDomains($this);
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     * @param  array<string, mixed>  $body
+     * @return Fluent<array-key, mixed>
+     *
+     * @internal
+     */
     public function request(string $method, string $path, string $action, array $query = [], array $body = []): Fluent
     {
         throw new OpenproviderException("The Openprovider fake can't {$action}: it only answers through zones() and domains().");
