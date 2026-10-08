@@ -28,6 +28,18 @@ function enableRoutes(array $routes = []): void
 }
 
 /**
+ * @param  array<string, mixed>  $exports
+ */
+function enableExports(array $exports = []): void
+{
+    config()->set('openprovider.exports', [...config('openprovider.exports'), 'enabled' => true, ...$exports]);
+
+    (new OpenproviderServiceProvider(app()))->packageBooted();
+
+    app('router')->getRoutes()->refreshNameLookups();
+}
+
+/**
  * @return array<string, mixed>
  */
 function record(string $value = '1.2.3.4', array $overrides = []): array
@@ -53,7 +65,23 @@ it('registers the routes behind web and auth by default', function () {
 
     expect($route->uri())->toBe('dns-zone/records/{domain}')
         ->and($route->gatherMiddleware())->toBe(['web', 'auth'])
-        ->and(Route::has(['dns-zone.records.store', 'dns-zone.records.update', 'dns-zone.records.destroy', 'dns-zone.export']))->toBeTrue();
+        ->and(Route::has(['dns-zone.records.store', 'dns-zone.records.update', 'dns-zone.records.destroy']))->toBeTrue();
+});
+
+it('keeps the export route off when only the DNS record routes are enabled', function () {
+    enableRoutes();
+
+    expect(Route::has('dns-zone.export'))->toBeFalse();
+});
+
+it('registers the export route on its own, with its own prefix and middleware', function () {
+    enableExports(['prefix' => 'admin', 'middleware' => ['api']]);
+
+    $route = Route::getRoutes()->getByName('dns-zone.export');
+
+    expect($route->uri())->toBe('admin/dns-zone/export/records/{domain}')
+        ->and($route->gatherMiddleware())->toBe(['api'])
+        ->and(Route::has('dns-zone.records.show'))->toBeFalse();
 });
 
 it('applies the configured prefix and middleware', function () {
@@ -160,7 +188,7 @@ it('requires at least one record to remove', function () {
 });
 
 it('exports the records as a spreadsheet', function () {
-    enableRoutes();
+    enableExports();
     fakeZone();
     Excel::fake();
 

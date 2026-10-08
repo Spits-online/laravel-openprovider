@@ -271,7 +271,6 @@ return [
 | `POST` | `dns-zone/records/{domain}` | `dns-zone.records.store` | Adds the `record` |
 | `PUT` | `dns-zone/records/{domain}` | `dns-zone.records.update` | Changes `original_record` into `record` |
 | `DELETE` | `dns-zone/records/{domain}` | `dns-zone.records.destroy` | Removes the `records` |
-| `GET` | `dns-zone/export/records/{domain}` | `dns-zone.export` | Downloads the records as `.xlsx` |
 
 The routes change live DNS, so they run behind `web` and `auth` by default. Any signed-in user can change any zone in the account, so add your own middleware when users may only manage some domains. Set the middleware and a URI prefix in the config:
 
@@ -303,11 +302,26 @@ Invalid requests get Laravel's standard `422` validation response. Changes answe
 
 ### Exporting a zone to Excel
 
-The export route needs [Laravel Excel](https://laravel-excel.com):
+A route that downloads a zone's records as `.xlsx` has its own switch, separate from the DNS record routes. It needs [Laravel Excel](https://laravel-excel.com):
 
 ```bash
 composer require maatwebsite/excel
 ```
+
+```php
+// config/openprovider.php
+return [
+    'exports' => [
+        'enabled' => true,
+    ],
+];
+```
+
+Like the DNS record routes, it runs behind `web` and `auth` by default, and takes its own `exports.prefix` and `exports.middleware`.
+
+| Method | URI | Name | Does |
+|---|---|---|---|
+| `GET` | `dns-zone/export/records/{domain}` | `dns-zone.export` | Downloads the records as `.xlsx` |
 
 You can also use the export in your own code:
 

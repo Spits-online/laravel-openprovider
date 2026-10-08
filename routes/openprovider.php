@@ -10,5 +10,4 @@ Route::controller(ZoneRecordController::class)->group(function () {
     Route::post('dns-zone/records/{domain}', 'store')->name('dns-zone.records.store');
     Route::put('dns-zone/records/{domain}', 'update')->name('dns-zone.records.update');
     Route::delete('dns-zone/records/{domain}', 'destroy')->name('dns-zone.records.destroy');
-    Route::get('dns-zone/export/records/{domain}', 'export')->name('dns-zone.export');
 });

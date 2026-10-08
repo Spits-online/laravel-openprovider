@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** the DNS record routes are off until an app sets `routes.enabled`, and run behind the `web` and `auth` middleware by default.
 - **Breaking:** the DNS record routes answer changes with `204 No Content`, and invalid requests with Laravel's standard validation response. `show` returns the zone as `data`, and no longer takes an `options` query parameter.
 - **Breaking:** new records must use a TTL Openprovider accepts (900, 3600, 10800, 21600, 43200 or 86400 seconds). Openprovider saved any other value as a day.
-- **Breaking:** `maatwebsite/excel` is optional. Install it (the export is tested against 4.x) to use the export route.
+- **Breaking:** the export route is off until an app sets `exports.enabled`, with its own `exports.prefix` and `exports.middleware` (`web` and `auth` by default), and `maatwebsite/excel` is optional. Install it (the export is tested against 4.x) to use the export route.
 - **Breaking:** `DnsRecordTypes` is replaced by the `RecordType` enum, and `DnsZoneExport` by `ZoneExport`, which takes `Record` objects.
 - The login token is cached for 47 hours (Openprovider's tokens are valid for 48) instead of 8, per account.
 

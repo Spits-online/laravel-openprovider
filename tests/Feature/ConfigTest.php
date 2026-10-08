@@ -11,6 +11,7 @@ it('merges an app config over the defaults key by key', function () {
     (new OpenproviderServiceProvider(app()))->register();
 
     expect(config('openprovider.routes'))->toBe(['enabled' => true, 'prefix' => '', 'middleware' => ['web', 'auth']])
+        ->and(config('openprovider.exports'))->toBe(['enabled' => false, 'prefix' => '', 'middleware' => ['web', 'auth']])
         ->and(config('openprovider.base_url'))->toBe('https://api.openprovider.eu/v1beta');
 });
 

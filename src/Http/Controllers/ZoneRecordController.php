@@ -11,14 +11,10 @@ use Illuminate\Support\Facades\Response as ResponseFactory;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
 use Illuminate\Validation\Rule;
-use Maatwebsite\Excel\Facades\Excel;
 use SpitsOnline\Openprovider\Data\Record;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Enums\Ttl;
-use SpitsOnline\Openprovider\Exceptions\MissingDependency;
-use SpitsOnline\Openprovider\Exports\ZoneExport;
 use SpitsOnline\Openprovider\Openprovider;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * The opt-in DNS record routes. See `routes.enabled` in `config/openprovider.php`.
@@ -70,15 +66,6 @@ class ZoneRecordController
         $this->openprovider->zones()->removeRecords($domain, Record::listFrom($input->array('records')), $this->provider($input));
 
         return ResponseFactory::noContent();
-    }
-
-    public function export(string $domain): BinaryFileResponse
-    {
-        if (! class_exists(Excel::class)) {
-            throw MissingDependency::package('maatwebsite/excel', 'export a DNS zone');
-        }
-
-        return Excel::download(new ZoneExport($this->openprovider->zones()->find($domain)->records), "dns_zone_{$domain}.xlsx");
     }
 
     /**

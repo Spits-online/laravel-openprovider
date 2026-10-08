@@ -36,8 +36,8 @@ return [
     | DNS record routes
     |--------------------------------------------------------------------------
     |
-    | JSON endpoints to read, add, change, remove and export the records of a
-    | DNS zone, for apps that manage DNS from their own front end. They are off
+    | JSON endpoints to read, add, change and remove the records of a DNS
+    | zone, for apps that manage DNS from their own front end. They are off
     | until an app enables them, and run behind `auth` by default, because
     | they change live DNS.
     |
@@ -46,6 +46,25 @@ return [
     */
 
     'routes' => [
+        'enabled' => false,
+        'prefix' => '',
+        'middleware' => ['web', 'auth'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Export routes
+    |--------------------------------------------------------------------------
+    |
+    | Routes that download account data as .xlsx, such as the records of a DNS
+    | zone. They need maatwebsite/excel, are off until an app enables them,
+    | and run behind `auth` by default, separately from the DNS record routes.
+    |
+    | See https://github.com/Spits-online/laravel-openprovider#exporting-a-zone-to-excel
+    |
+    */
+
+    'exports' => [
         'enabled' => false,
         'prefix' => '',
         'middleware' => ['web', 'auth'],

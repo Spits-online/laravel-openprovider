@@ -11,7 +11,7 @@ Version 2 is a rewrite. Version 1 is no longer supported and won't get bug or se
 - [ ] Replace `Spits\LaravelOpenproviderApi\` with `SpitsOnline\Openprovider\` across your app
 - [ ] Rename `config/openprovider-api.php` to `config/openprovider.php` and shrink it to the keys you change (see below)
 - [ ] Using the `dns-zone/*` routes? Enable them in the config (see below)
-- [ ] Using the export? `composer require maatwebsite/excel`
+- [ ] Using the export route? `composer require maatwebsite/excel` and set `exports.enabled` (see below)
 - [ ] Replace `DomainService` and `DnsService` calls (see below)
 
 The env keys (`OPENPROVIDER_USERNAME`, `OPENPROVIDER_PASSWORD`, `OPENPROVIDER_IP` and `OPENPROVIDER_BASE_URL`) haven't changed.
@@ -37,6 +37,17 @@ After:
 // config/openprovider.php
 return [
     'routes' => [
+        'enabled' => true,
+    ],
+];
+```
+
+The export route (`dns-zone.export`) is not part of this group. It has its own switch, prefix and middleware under `exports`:
+
+```php
+// config/openprovider.php
+return [
+    'exports' => [
         'enabled' => true,
     ],
 ];

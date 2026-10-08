@@ -28,13 +28,27 @@ final class OpenproviderServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        if (! Config::boolean('openprovider.routes.enabled') || $this->app->routesAreCached()) {
+        if ($this->app->routesAreCached()) {
             return;
         }
 
-        Route::middleware(Config::array('openprovider.routes.middleware'))
-            ->prefix(Config::string('openprovider.routes.prefix'))
-            ->group(__DIR__.'/../routes/openprovider.php');
+        $this->registerRoutes('routes', 'openprovider.php');
+        $this->registerRoutes('exports', 'exports.php');
+    }
+
+    /**
+     * Register one opt-in route group with its own `enabled`, `prefix` and
+     * `middleware` keys in the config.
+     */
+    private function registerRoutes(string $key, string $file): void
+    {
+        if (! Config::boolean("openprovider.{$key}.enabled")) {
+            return;
+        }
+
+        Route::middleware(Config::array("openprovider.{$key}.middleware"))
+            ->prefix(Config::string("openprovider.{$key}.prefix"))
+            ->group(__DIR__."/../routes/{$file}");
     }
 
     /**
