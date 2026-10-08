@@ -1,39 +1,27 @@
 <?php
 
-namespace Spits\LaravelOpenproviderApi\Tests;
+declare(strict_types=1);
 
-use Illuminate\Database\Eloquent\Factories\Factory;
+namespace SpitsOnline\Openprovider\Tests;
+
 use Maatwebsite\Excel\ExcelServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Spits\LaravelOpenproviderApi\LaravelOpenproviderApiServiceProvider;
+use SpitsOnline\Openprovider\OpenproviderServiceProvider;
 
-class TestCase extends Orchestra
+abstract class TestCase extends Orchestra
 {
-    protected function setUp(): void
+    protected function getPackageProviders($app): array
     {
-        parent::setUp();
-
-        Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Spits\\LaravelOpenproviderApi\\Database\\Factories\\'.class_basename($modelName).'Factory'
-        );
+        return [ExcelServiceProvider::class, OpenproviderServiceProvider::class];
     }
 
-    protected function getPackageProviders($app)
+    protected function defineEnvironment($app): void
     {
-        return [
-            ExcelServiceProvider::class,
-            LaravelOpenproviderApiServiceProvider::class,
-        ];
-    }
+        $app['config']->set('openprovider.username', 'spits');
+        $app['config']->set('openprovider.password', 'secret');
+        $app['config']->set('openprovider.ip', '203.0.113.10');
 
-    public function getEnvironmentSetUp($app)
-    {
-        config()->set('database.default', 'testing');
-
-        /*
-         foreach (\Illuminate\Support\Facades\File::allFiles(__DIR__ . '/database/migrations') as $migration) {
-            (include $migration->getRealPath())->up();
-         }
-         */
+        // The `web` middleware group of the DNS record routes encrypts cookies.
+        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
     }
 }

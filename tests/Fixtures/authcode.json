@@ -1,0 +1,9 @@
+{
+    "code": 0,
+    "data": {
+        "auth_code": "12345678",
+        "success": true,
+        "type": "external"
+    },
+    "desc": ""
+}

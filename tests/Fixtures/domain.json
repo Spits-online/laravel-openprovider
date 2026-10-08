@@ -1,0 +1,48 @@
+{
+    "code": 0,
+    "data": {
+        "active_date": "2021-09-27 07:06:00",
+        "admin_handle": "CV904717-NL",
+        "auth_code": "!@#$%^&*()",
+        "autorenew": "off",
+        "billing_handle": "CV904717-NL",
+        "can_renew": true,
+        "comments": "Any comments go",
+        "creation_date": "2021-09-27 07:03:04",
+        "dnssec": "unsigned",
+        "domain": {
+            "extension": "info",
+            "name": "greatdomain1"
+        },
+        "expiration_date": "2022-09-27 07:03:04",
+        "id": 1222095,
+        "is_deleted": false,
+        "is_dnssec_enabled": true,
+        "is_locked": true,
+        "is_private_whois_enabled": false,
+        "name_servers": [
+            {
+                "ip": "",
+                "ip6": "",
+                "name": "ns1.testin.nl",
+                "seq_nr": 0
+            },
+            {
+                "ip": "64.190.62.111",
+                "ip6": "",
+                "name": "ns2.testin.eu",
+                "seq_nr": 1
+            }
+        ],
+        "ns_group": "testin",
+        "owner_handle": "CV904717-NL",
+        "registry_expiration_date": "2022-09-27 07:03:04",
+        "renewal_date": "2022-09-27 07:03:04",
+        "reseller_id": 242219,
+        "status": "ACT",
+        "tech_handle": "CV904717-NL",
+        "type": "NEW",
+        "unit": "y"
+    },
+    "desc": ""
+}
