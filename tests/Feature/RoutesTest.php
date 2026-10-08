@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Auth\User;
+use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 use SpitsOnline\Openprovider\Data\Record;
@@ -195,4 +196,38 @@ it('exports the records as a spreadsheet', function () {
     $this->actingAs(new User)->get('dns-zone/export/records/demo-domain.nl')->assertOk();
 
     Excel::assertDownloaded('dns_zone_demo-domain.nl.xlsx', fn (ZoneExport $export) => $export->collection()->count() === 1);
+});
+
+it('names the export after the requested filename', function (string $filename, string $expected) {
+    enableExports();
+    fakeZone();
+    Excel::fake();
+
+    $this->actingAs(new User)->get('dns-zone/export/records/demo-domain.nl?filename='.urlencode($filename))->assertOk();
+
+    Excel::assertDownloaded($expected);
+})->with([
+    'without extension' => ['demo zone', 'demo zone.xlsx'],
+    'with extension' => ['demo-zone.xlsx', 'demo-zone.xlsx'],
+    'empty' => ['', 'dns_zone_demo-domain.nl.xlsx'],
+]);
+
+it('refuses a filename that could leave the download header, before asking Openprovider', function (string $filename) {
+    enableExports();
+    // No zone in the fake: looking it up first would fail before validation.
+    Openprovider::fake();
+
+    $this->actingAs(new User)
+        ->getJson('dns-zone/export/records/demo-domain.nl?filename='.urlencode($filename))
+        ->assertJsonValidationErrors('filename');
+})->with(['../secret', "zone\r\nSet-Cookie: x", 'zone"; x=y']);
+
+it('refuses a trailing newline in the filename when the app does not trim input', function () {
+    enableExports();
+    fakeZone();
+
+    $this->withoutMiddleware(TrimStrings::class)
+        ->actingAs(new User)
+        ->getJson('dns-zone/export/records/demo-domain.nl?filename='.urlencode("zone\n"))
+        ->assertJsonValidationErrors('filename');
 });

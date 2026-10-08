@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exceptions that say what went wrong: `RequestFailed` (with Openprovider's `$status`, `$errorCode` and `$body`), `ConnectionFailed`, `MissingConfiguration` (names the env key to set), `InvalidDomainName` and `MissingDependency`, all extending `OpenproviderException`.
 - An app's `config/openprovider.php` only needs the keys it changes. It is merged over the defaults key by key.
 - Support for Openprovider's sandbox through `OPENPROVIDER_BASE_URL`.
+- The export route takes an optional `filename` to name the download. It defaults to `dns_zone_{domain}.xlsx`, as before.
 
 ### Changed
 - **Breaking:** the package is renamed to `spits-online/laravel-openprovider`.

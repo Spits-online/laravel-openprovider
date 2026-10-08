@@ -323,6 +323,8 @@ Like the DNS record routes, it runs behind `web` and `auth` by default, and take
 |---|---|---|---|
 | `GET` | `dns-zone/export/records/{domain}` | `dns-zone.export` | Downloads the records as `.xlsx` |
 
+The download is named `dns_zone_{domain}.xlsx`. Pass `?filename=example` to name it `example.xlsx` instead. The name may contain letters, digits, spaces, dots, dashes and underscores.
+
 You can also use the export in your own code:
 
 ```php
