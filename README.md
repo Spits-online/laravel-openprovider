@@ -1,221 +1,408 @@
+<div align="left">
+  <a href="https://github.com/Spits-online/laravel-openprovider">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Spits-online/laravel-openprovider/main/art/banner-dark.png">
+      <img alt="Laravel Openprovider by Spits" src="https://raw.githubusercontent.com/Spits-online/laravel-openprovider/main/art/banner-light.png">
+    </picture>
+  </a>
 
+<h1>Openprovider domains and DNS for Laravel</h1>
 
-# openprovider.com API Support for Laravel
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/spits-online/laravel-openprovider.svg?style=flat-square)](https://packagist.org/packages/spits-online/laravel-openprovider)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Spits-online/laravel-openprovider/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Spits-online/laravel-openprovider/actions/workflows/run-tests.yml)
+[![PHPStan](https://img.shields.io/github/actions/workflow/status/Spits-online/laravel-openprovider/phpstan.yml?branch=main&label=phpstan&style=flat-square)](https://github.com/Spits-online/laravel-openprovider/actions/workflows/phpstan.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/spits-online/laravel-openprovider.svg?style=flat-square)](https://packagist.org/packages/spits-online/laravel-openprovider)
 
-1. [Introduction](#overview)
-    - [Why This Package?](#why-this-package)
-2. [Installation](#installation)
-    - [Prerequisites](#prerequisites)
-    - [Step-by-Step Installation](#step-by-step-installation)
-3. [Configuration](#configuration)
-4. [Usage](#usage)
-    - [1. Contact Management](#1-contact-management)
-        - [Retrieve Contacts](#retrieve-contacts)
-        - [Retrieve a Single Contact](#retrieving-a-single-contact)
-        - [Create or Update Contacts](#create-or-update-contacts)
-        - [Delete Contacts](#delete-contacts)
-        - [Contact Model Overview](#contact-model-overview)
-    - [2. Sending Notifications](#2-sending-notifications)
-        - [Supported Notification Channels](#supported-notification-channels)
-        - [Example: Sending SMS Notifications](#example-sending-sms-notifications)
-5. [Exception Handling](#exception-handling)
-6. [Contributing](#contributing)
-7. [License](#license)
-8. [Contact](#contact)
+</div>
 
+A typed client for the domains and DNS zones in your [Openprovider](https://www.openprovider.com) account. It logs in for you, returns data objects instead of arrays, and ships a fake for your tests. It can also add JSON routes for managing DNS records and exporting a zone to Excel.
 
-## Overview
-The Laravel Openprovider package simplifies integrating the powerful Openprovider API into your Laravel applications.
-It provides a user-friendly way to manage Domains and DNS Zone records.
-This package is designed to make communication between [Laravel](https://laravel.com) and [Openprovider](https://www.openprovider.com/) seamless and efficient.
+```php
+use SpitsOnline\Openprovider\Data\Record;
+use SpitsOnline\Openprovider\Enums\RecordType;
+use SpitsOnline\Openprovider\Facades\Openprovider;
 
+Openprovider::zones()->addRecords('example.com', [
+    Record::create(type: RecordType::A, value: '1.2.3.4', name: 'www'),
+]);
 
-[//]: # (- **Dynamic Templates**: Leverage reusable templates for consistent notifications.)
+$zone = Openprovider::zones()->find('example.com');
+$zone->records; // list<Record>
+```
 
+## Requirements
+
+- PHP 8.3+
+- Laravel 12 or 13
+- An Openprovider account with API access
 
 ## Installation
 
-### Prerequisites
-Before installing this package, ensure your system meets the following requirements:
-- **PHP**: Version `^8.2`, `^8.3`, `^8.4`, `^8.5`
-- **Laravel**: Version  `^11.0`, `^12.0`, `^13.0`
-- **Openprovider Account**
-
-> **Laravel Excel compatibility**
->
-> The `.xlsx` export works with both `maatwebsite/excel` `^3.1` and `^4.0`; Composer resolves
-> whichever major fits your platform. Be aware that `^3.1` cannot be installed on PHP 8.5 (its
-> `phpoffice/phpspreadsheet` 1.x dependency caps at `<8.5`), and `^4.0` requires PHP 8.3+ with
-> Laravel 12+. PHP 8.5 therefore needs Laravel 12 or 13. Require `maatwebsite/excel` explicitly in
-> your own `composer.json` if you want to stay on one specific major.
-
-### Step-by-Step Installation
-1. Add the package to your Laravel project using Composer:
-    ```bash
-    composer require spits-online/laravel-openprovider-api
-   ```
-2. Once installed, the package will automatically register the `LarvelOpenproviderApiServiceProvider` using Laravel's package auto-discovery.
-3. Run the following command to publish the package configuration:
-   ```bash
-   php artisan vendor:publish --tag="laravel-openprovider-api-config"
-    ```
-   This will create a `config/openprovider-api.php` file in your application.
-
-
-## Configuration
-
-OPENPROVIDER_USERNAME="{{username}}"
-OPENPROVIDER_PASSWORD="{{password}}"
-
-The `config/openprovider-api.php` file contains all configurable options, including:
-
-- Openprovider base URL: the API URL for openprovider `OPENPROVIDER_BASE_URL` most likely `"https://api.openprovider.eu/v1beta"`
-- Server IP: Set the IP address of your server to communicate with the API `OPENPROVIDER_IP`
-- Openprovider username: Set the username of your account (must have permission to use API, can be set in Openprovider dashboard) `OPENPROVIDER_USERNAME`.
-- Openprovider password: Set the password of your account (must have permission to use API, can be set in Openprovider dashboard) `OPENPROVIDER_PASSWORD`.
-
-    ```env
-    OPENPROVIDER_BASE_URL="https://api.openprovider.eu/v1beta"
-    OPENPROVIDER_IP={IP address of your server}
-    OPENPROVIDER_USERNAME={Openprovider username}
-    OPENPROVIDER_PASSWORD={Openprovider password}
-    ```
-For detailed configuration options, refer to the comments within the config/openprovider-api.php file.
-
-## Usage
-
-### 1. Domain management
-
-This package provides functionality for managing domains via the Openprovider API. Below are the key actions you can perform with the `DomainService`.
-
-#### Retrieve a list of domains
-You can retrieve a list of domain using the `getDomains()` method.
-To be able to retrieve the domains, make sure you have specified the credentials in your `.env` file.
-
-```php
-use Spits\LaravelOpenproviderApi\Services\DomainService;
-
-$domains = app(new DomainService())->index(options: ['limit' => 100, 'offset' => 100]);
+```bash
+composer require spits-online/laravel-openprovider
 ```
 
-Parameters:
-- `options`: An array of options for the request see the [Openprovider docs](https://docs.openprovider.com/doc/all#operation/ListDomains) for the available options.
+Add your Openprovider login to `.env`:
 
-
-#### Retrieving a single domain
-You can also retrieve a single domain using the `getDomain()` method. This allows you to get only one domain by specifying its id.
-
-```php
-use Spits\LaravelOpenproviderApi\Services\DomainService;
-
-$domain = app(new DomainService())->getDomain(id: 'Openprovider ID');
+```env
+OPENPROVIDER_USERNAME=
+OPENPROVIDER_PASSWORD=
+# The IP address of the server that calls the API, sent with the login
+OPENPROVIDER_IP=
 ```
 
-Parameters:
-- `id`: The id of the domain
+The account needs API access, which you enable in the Openprovider control panel.
 
-#### Update domain
-You can update a domain by passing the `id` and `data` array  to the `updateDomain` method.\
-This method requires the domain's identifier.
+That's all the configuration most apps need, so you don't have to publish a config file. When you do want to change something, such as [enabling the DNS record routes](#dns-record-routes), create `config/openprovider.php` with **only the keys you change**. It's merged over the [package defaults](config/openprovider.php) key by key, so everything you leave out keeps its default:
 
 ```php
-use Spits\LaravelOpenproviderApi\Services\DomainService;
-
-$response = new DomainService()->updateDomain(id: 'id', data: []);
-
-
+// config/openprovider.php
+return [
+    'routes' => [
+        'enabled' => true,
+    ],
+];
 ```
 
-Parameters:
-- `id`: The `ID` of the domain you wish to update
-- `data`: The data you wish to update. See the [Openprovider docs](https://docs.openprovider.com/doc/all#operation/UpdateDomain) for the updatable  attributes
+Don't copy keys at their default value. A copied default looks like a deliberate choice, and it stops following the package when the default changes. To see every option, you can publish the full file with `php artisan vendor:publish --tag="openprovider-config"`. Keep the keys you change and delete the rest.
 
+### Testing against the sandbox
 
-### 2. Managing DNS zones
+Openprovider has a sandbox for trying things without buying anything. Point the package at it with:
 
-This package supports managing DNS zones.\
-We made specific controllers for the Dns zone records as its our own main use case.\
-But the DnsService class can be used for all functions related to DNS zones. 
+```env
+OPENPROVIDER_BASE_URL=http://api.sandbox.openprovider.nl:8480/v1beta
+```
 
-#### Retrieving DNS zone records
-You can get the records by using the `show` function in DnsRecordsController.
+### How the login works
 
+The package logs in on the first request and caches the token for 47 hours. Openprovider's tokens are valid for 48, so a cached token never expires mid-request. Each account has its own cached token, and a failed login caches nothing.
+
+## Managing DNS records
+
+Records are `Record` objects. Build one with `Record::create()`:
 
 ```php
-use Spits\LaravelOpenproviderApi\Services\DnsService;
+use SpitsOnline\Openprovider\Data\Record;
+use SpitsOnline\Openprovider\Enums\RecordType;
+use SpitsOnline\Openprovider\Enums\Ttl;
 
-class DnsRecordsController {
-    public function show(string $domain, DnsService $service) 
-    {
-        $options = request()->get('options', ['with_records' => 'true']);
+$mx = Record::create(
+    type: RecordType::Mx,
+    value: 'mail.example.com',
+    ttl: Ttl::Hour,
+    prio: 10,
+);
+```
 
-        $response = $service->getDnsZone($domain, $options);
+- `name` is the host before the zone name, such as `www`. Leave it out for the zone itself.
+- `ttl` is one of the TTLs Openprovider accepts: `Ttl::FifteenMinutes` (the default), `Hour`, `ThreeHours`, `SixHours`, `TwelveHours` or `Day`. Openprovider would silently save any other value as a day.
+- `prio` is the priority, which MX records need.
 
-        return $response->collect();
+Add, change and remove records:
+
+```php
+use SpitsOnline\Openprovider\Facades\Openprovider;
+
+Openprovider::zones()->addRecords('example.com', [$mx]);
+
+Openprovider::zones()->updateRecord('example.com', $original, $changed);
+
+Openprovider::zones()->removeRecords('example.com', [$mx]);
+```
+
+`updateRecord()` and `removeRecords()` find the record by its name, type, value, TTL and priority. Pass records the way Openprovider returned them, for example from `find()`:
+
+```php
+$zone = Openprovider::zones()->find('example.com');
+
+$old = collect($zone->records)
+    ->firstWhere('type', RecordType::Mx);
+
+Openprovider::zones()->removeRecords('example.com', [$old]);
+```
+
+SOA records are generated by Openprovider and can't be changed. `RecordType::Soa->isEditable()` returns `false`.
+
+### Reading records
+
+`find()` returns the zone with its records:
+
+```php
+$zone = Openprovider::zones()->find('example.com');
+
+$zone->name;     // "example.com"
+$zone->type;     // ZoneType::Master
+$zone->records;  // list<Record>
+$zone->raw;      // the full answer from Openprovider
+```
+
+For large zones, `records()` returns a lazy collection that fetches the records 500 at a time, as you use them:
+
+```php
+Openprovider::zones()
+    ->records('example.com', type: RecordType::Txt)
+    ->each(fn (Record $record) => /* ... */);
+```
+
+### Premium DNS
+
+Every zone method takes a `provider` argument. Pass `'sectigo'` to work with a premium DNS zone:
+
+```php
+Openprovider::zones()->find('example.com', provider: 'sectigo');
+```
+
+## Managing zones
+
+```php
+use SpitsOnline\Openprovider\Facades\Openprovider;
+
+// One page, or every zone lazily
+$page = Openprovider::zones()->list(limit: 100, namePattern: 'example*');
+$page->items;   // list<Zone>
+$page->total;   // across all pages
+
+Openprovider::zones()->all()->each(/* ... */);
+
+Openprovider::zones()->create('example.com', records: [$mx]);
+
+// A slave zone copies its records from a master server
+Openprovider::zones()->create('example.com', masterIp: '192.0.2.1');
+
+Openprovider::zones()->delete('example.com');
+```
+
+`create()` also takes `isDnssecEnabled`, a `template` name and a `provider`. Openprovider can't restore a deleted zone.
+
+## Managing domains
+
+```php
+use SpitsOnline\Openprovider\Facades\Openprovider;
+
+$domain = Openprovider::domains()->find(1222095);
+$domain = Openprovider::domains()->findByName('example.com'); // or null
+
+$domain->id;           // 1222095
+(string) $domain->name; // "example.com"
+$domain->status;       // "ACT" (active) or "REQ" (requested)
+$domain->autorenew;    // Autorenew::Off
+$domain->nameServers;  // list<Nameserver>
+$domain->renewalDate;  // "2026-09-27 07:03:04", as Openprovider sends it
+$domain->raw;          // the full answer from Openprovider
+```
+
+List domains a page at a time, or all of them lazily. The pattern matches the name without its extension:
+
+```php
+$page = Openprovider::domains()->list(pattern: 'example*', status: 'ACT');
+
+Openprovider::domains()->all()->each(/* ... */);
+```
+
+### Registering a domain
+
+Check whether it's available first:
+
+```php
+$check = Openprovider::domains()->check(['example.com'])[0];
+
+$check->isAvailable(); // true when the status is "free"
+```
+
+Then register it. Contact handles are Openprovider customer handles. Openprovider charges your account for the registration.
+
+```php
+use SpitsOnline\Openprovider\Enums\Autorenew;
+
+$domain = Openprovider::domains()->create(
+    'example.com',
+    ownerHandle: 'CV904717-NL',
+    adminHandle: 'CV904717-NL',
+    techHandle: 'CV904717-NL',
+    nameServers: ['ns1.op.eu', 'ns2.op.nl'],
+    autorenew: Autorenew::On,
+);
+```
+
+To transfer a domain in, use `transfer()` with the same arguments plus its `authCode`.
+
+`create()`, `transfer()` and `update()` take an `attributes` array for any other field Openprovider documents for that request, such as `['promo_code' => 'SPRING']`.
+
+### Changing a domain
+
+`update()` only changes the arguments you pass:
+
+```php
+Openprovider::domains()->update(
+    $domain->id,
+    nsGroup: 'my-nameservers',
+    isLocked: true,
+);
+```
+
+The other domain methods:
+
+```php
+Openprovider::domains()->renew($domain->id, period: 2);
+Openprovider::domains()->restore($domain->id);
+Openprovider::domains()->delete($domain->id);
+
+$code = Openprovider::domains()->authCode($domain->id);
+$code = Openprovider::domains()->resetAuthCode($domain->id);
+```
+
+## DNS record routes
+
+The package can register JSON routes for apps that manage DNS records from their own front end. They are off until you enable them:
+
+```php
+// config/openprovider.php
+return [
+    'routes' => [
+        'enabled' => true,
+    ],
+];
+```
+
+| Method | URI | Name | Does |
+|---|---|---|---|
+| `GET` | `dns-zone/records/{domain}` | `dns-zone.records.show` | Returns the zone with its records as `data` |
+| `POST` | `dns-zone/records/{domain}` | `dns-zone.records.store` | Adds the `record` |
+| `PUT` | `dns-zone/records/{domain}` | `dns-zone.records.update` | Changes `original_record` into `record` |
+| `DELETE` | `dns-zone/records/{domain}` | `dns-zone.records.destroy` | Removes the `records` |
+| `GET` | `dns-zone/export/records/{domain}` | `dns-zone.export` | Downloads the records as `.xlsx` |
+
+The routes change live DNS, so they run behind `web` and `auth` by default. Any signed-in user can change any zone in the account, so add your own middleware when users may only manage some domains. Set the middleware and a URI prefix in the config:
+
+```php
+// config/openprovider.php
+return [
+    'routes' => [
+        'enabled' => true,
+        'prefix' => 'admin',
+        'middleware' => ['api', 'auth:sanctum'],
+    ],
+];
+```
+
+A record in a request body has the same fields as `Record::create()`:
+
+```json
+{
+    "record": {
+        "name": "www",
+        "type": "A",
+        "value": "1.2.3.4",
+        "ttl": 900
     }
 }
 ```
 
-Parameters:
-- `domain`: The domain for which you want to see de DNS zone information
-- `options`: An array set as query param with all the options you want to send with the call. See the docs for available [options](https://docs.openprovider.com/doc/all#tag/ZoneService)
+Invalid requests get Laravel's standard `422` validation response. Changes answer `204 No Content`. Each request may send a `provider` to change a premium DNS zone.
 
-#### Creating / Updating / Removing records
-We chose too split these in separate controller functions.\
-But all can be done in 1 operation by calling the `updateDnsZone` function in `Spits\LaravelOpenproviderApi\Services\DnsService`
+### Exporting a zone to Excel
+
+The export route needs [Laravel Excel](https://laravel-excel.com):
+
+```bash
+composer require maatwebsite/excel
+```
+
+You can also use the export in your own code:
 
 ```php
-use Spits\LaravelOpenproviderApi\Services\DnsService;
+use Maatwebsite\Excel\Facades\Excel;
+use SpitsOnline\Openprovider\Exports\ZoneExport;
 
-class DnsRecordsController {
-    public function store(string $domain, DnsService $service, DnsRecordStoreRequest $request)
-    {
-        $data = [
-            'provider' => $request->validated('provider'),
-            'records' => [
-                'add' => [
-                    $request->validated('record'),
-                ],
-            ],
-        ];
+$records = Openprovider::zones()->find('example.com')->records;
 
-        return $service->updateDnsZone($domain, $data);
-    }
+return Excel::download(new ZoneExport($records), 'example.com.xlsx');
+```
+
+## Error handling
+
+Every exception extends `SpitsOnline\Openprovider\Exceptions\OpenproviderException`:
+
+| Exception | When |
+|---|---|
+| `RequestFailed` | Openprovider returned an error. `$status`, `$errorCode` and `$body` hold what it sent back. |
+| `ConnectionFailed` | Openprovider couldn't be reached. |
+| `MissingConfiguration` | The username or password isn't set. The message names the env key. |
+| `InvalidDomainName` | A domain name has no extension, such as `localhost`. |
+| `MissingDependency` | The export route is used without `maatwebsite/excel`. |
+
+```php
+use SpitsOnline\Openprovider\Exceptions\RequestFailed;
+
+try {
+    $domain = Openprovider::domains()->find($id);
+} catch (RequestFailed $e) {
+    report($e);
+
+    return back()->with('error', $e->body['desc'] ?? 'Openprovider failed');
 }
 ```
 
-#### Exporting records
-We created the `export` function in `Spits\LaravelOpenproviderApi\Http\Controllers\DnsRecordsController` to export Dns zone records to an .xlsx file.
+## Testing your app
+
+`Openprovider::fake()` swaps the client for an in-memory Openprovider. Seed it with zones and domains; changes apply to the seeded data, and you can assert on them:
 
 ```php
-use Spits\LaravelOpenproviderApi\Services\DnsService;
+use SpitsOnline\Openprovider\Data\Record;
+use SpitsOnline\Openprovider\Enums\RecordType;
+use SpitsOnline\Openprovider\Facades\Openprovider;
 
-class DnsRecordsController {
-    public function export(string $domain, DnsService $service)
-    {
-        $options = request()->get('options', ['with_records' => 'true']);
+$fake = Openprovider::fake()
+    ->withZone('example.com', [
+        Record::create(type: RecordType::A, value: '1.2.3.4'),
+    ])
+    ->withDomain('example.com');
 
-        $response = $service->getDnsZone($domain, $options);
-        $data = $response->collect();
-        $collection = collect($data['data']['records'])->map(function ($item) {
-            return (object) $item;
-        });
+// ... run the code under test ...
 
-        $export = new DnsZoneExport($collection);
-
-        return Excel::download($export, 'dns_zone_'.$domain.'.xlsx');
-    }
-}
+Openprovider::assertRecordAdded(
+    'example.com',
+    fn (Record $record) => $record->value === '5.6.7.8',
+);
+Openprovider::assertRecordUpdated('example.com');
+Openprovider::assertRecordRemoved('example.com');
+Openprovider::assertZoneCreated('example.nl');
+Openprovider::assertZoneDeleted('example.nl');
+Openprovider::assertDomainRegistered('example.nl');
+Openprovider::assertDomainTransferred('example.org');
+Openprovider::assertDomainUpdated(1, fn (array $changes) => /* ... */);
+Openprovider::assertDomainRenewed(1);
+Openprovider::assertDomainRestored(1);
+Openprovider::assertDomainDeleted(1);
+Openprovider::assertNothingChanged();
 ```
+
+A zone or domain that wasn't seeded throws `RequestFailed` with status `404`. `check()` reports seeded domains as `in use` and every other name as `free`.
+
+## Testing
+
+```bash
+composer test
+```
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently. Upgrading from 1.x? See [UPGRADE](UPGRADE.md).
 
 ## Contributing
 
-Please submit ideas, issues and pull requests to the [GitHub repository](https://github.com/spits-online/laravel-openprovider-api).
+Please see [CONTRIBUTING](.github/CONTRIBUTING.md) for details.
+
+## Security vulnerabilities
+
+Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+
+## Credits
+
+- [SpitsOnline](https://spits.online)
+- [All Contributors](../../contributors)
 
 ## License
 
-This package is open-sourced software licensed under the [MIT license](LICENSE).
-
-## Contact
-
-For any inquiries or support, please contact [Spits](mailto:webapps@spits.online).
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
