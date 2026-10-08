@@ -2,68 +2,57 @@ name: run-tests
 
 on:
   push:
-    paths:
-      - '**.php'
-      - '.github/workflows/run-tests.yml'
-      - 'phpunit.xml.dist'
-      - 'composer.json'
-      - 'composer.lock'
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 4 * * 1'   # weekly: catch upstream breakage before users do
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
-      fail-fast: true
+      fail-fast: false
+      # Keep this matrix identical to the ranges in composer.json.
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        php: [8.5, 8.4, 8.3, 8.2]
-        laravel: [11.*, 12.*, 13.*]
+        php: [8.3, 8.4, 8.5]
+        laravel: [12.*, 13.*]
         stability: [prefer-lowest, prefer-stable]
         include:
-          - laravel: 11.*
-            testbench: 9.*
-            carbon: ^2.63
           - laravel: 12.*
             testbench: 10.*
-            carbon: ^3.0
           - laravel: 13.*
             testbench: 11.*
-            carbon: ^3.0
-        exclude:
-          # Laravel 13 requires PHP 8.3+
-          - laravel: 13.*
-            php: 8.2
-          # PHP 8.5 has no resolvable set on Laravel 11: maatwebsite/excel 3.x cannot install
-          # on 8.5 (phpspreadsheet 1.x caps at <8.5) and 4.x requires Laravel 12+.
-          - laravel: 11.*
-            php: 8.5
 
-    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+    name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · ${{ matrix.stability }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, intl, fileinfo
+          ini-values: error_reporting=E_ALL
           coverage: none
 
-      - name: Setup problem matchers
+      - name: Problem matchers
         run: |
           echo "::add-matcher::${{ runner.tool_cache }}/php.json"
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
       - name: Install dependencies
         run: |
-          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "nesbot/carbon:${{ matrix.os == 'windows-latest' && '^^^' || '' }}${{ matrix.carbon }}" --no-interaction --no-update
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update --dev
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      - name: List Installed Dependencies
-        run: composer show -D
+      - run: composer show -D
 
-      - name: Execute tests
-        run: vendor/bin/pest --ci
+      - run: vendor/bin/pest --ci

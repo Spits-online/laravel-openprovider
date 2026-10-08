@@ -1,11 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Ask a question
-    url: https://github.com/spits-online/laravel-openprovider-api/discussions/new?category=q-a
-    about: Ask the community for help
-  - name: Request a feature
-    url: https://github.com/spits-online/laravel-openprovider-api/discussions/new?category=ideas
-    about: Share ideas for new features
-  - name: Report a security issue
-    url: https://github.com/spits-online/laravel-openprovider-api/security/policy
-    about: Learn how to notify us for sensitive bugs
+  - name: Ask a question or propose a feature
+    url: https://github.com/Spits-online/laravel-openprovider/discussions/new
+    about: Questions and ideas go in Discussions, so issues stay a list of real bugs.
+  - name: Report a security vulnerability
+    url: https://github.com/Spits-online/laravel-openprovider/security/policy
+    about: Please don't report security issues publicly.
