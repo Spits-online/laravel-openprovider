@@ -15,7 +15,7 @@ it('builds a record with Openprovider\'s smallest TTL by default', function () {
 });
 
 it('leaves an empty name and a missing priority out of the payload', function () {
-    expect(Record::create(RecordType::Mx, 'mail.example.com', 'mail', Ttl::Day, 10)->toArray())
+    expect(Record::create(RecordType::MX, 'mail.example.com', 'mail', Ttl::DAY, 10)->toArray())
         ->toBe(['name' => 'mail', 'type' => 'MX', 'value' => 'mail.example.com', 'ttl' => 86400, 'prio' => 10]);
 });
 
@@ -23,7 +23,7 @@ it('reads a record as Openprovider sends it', function () {
     $record = Record::fromArray(['name' => 'www.example.com', 'type' => 'CNAME', 'value' => 'example.com', 'ttl' => '3600', 'ip' => '127.0.0.1']);
 
     expect($record)
-        ->type->toBe(RecordType::Cname)
+        ->type->toBe(RecordType::CNAME)
         ->ttl->toBe(3600)
         ->prio->toBeNull()
         ->raw->toHaveKey('ip', '127.0.0.1');
@@ -33,12 +33,12 @@ it('compares records by what they describe, not by their payload', function () {
     $read = Record::fromArray(['name' => 'www', 'type' => 'A', 'value' => '1.2.3.4', 'ttl' => 900, 'creation_date' => '']);
 
     expect($read->is(Record::create(RecordType::A, '1.2.3.4', 'www')))->toBeTrue()
-        ->and($read->is(Record::create(RecordType::A, '1.2.3.4', 'www', Ttl::Hour)))->toBeFalse();
+        ->and($read->is(Record::create(RecordType::A, '1.2.3.4', 'www', Ttl::HOUR)))->toBeFalse();
 });
 
 it('only treats SOA records as not editable', function () {
     expect(array_filter(RecordType::cases(), fn (RecordType $type) => ! $type->isEditable()))
-        ->toBe([6 => RecordType::Soa]);
+        ->toBe([6 => RecordType::SOA]);
 });
 
 it('splits a domain at its first dot', function (string $domain, string $name, string $extension) {

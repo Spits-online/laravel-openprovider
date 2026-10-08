@@ -33,13 +33,13 @@ it('finds a zone with its records', function () {
     expect($zone)
         ->id->toBe(9146574)
         ->name->toBe('demo-domain.nl')
-        ->type->toBe(ZoneType::Master)
+        ->type->toBe(ZoneType::MASTER)
         ->isActive->toBeTrue()
         ->provider->toBeNull()
         ->createdAt->toBe('2019-06-27 06:22:36')
         ->records->toHaveCount(2)
         ->and($zone->records[1])
-        ->type->toBe(RecordType::Mx)
+        ->type->toBe(RecordType::MX)
         ->name->toBe('demo-domain.nl')
         ->value->toBe('mail.demo-domain.nl')
         ->ttl->toBe(86400)
@@ -151,7 +151,7 @@ it('adds records', function () {
 
     Openprovider::zones()->addRecords('demo-domain.nl', [
         Record::create(type: RecordType::A, value: '1.2.3.4'),
-        Record::create(type: RecordType::Mx, value: 'mail.demo-domain.nl', ttl: Ttl::Hour, prio: 10),
+        Record::create(type: RecordType::MX, value: 'mail.demo-domain.nl', ttl: Ttl::HOUR, prio: 10),
     ]);
 
     Http::assertSent(fn (Request $request) => $request->method() === 'PUT'

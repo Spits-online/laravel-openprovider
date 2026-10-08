@@ -11,20 +11,20 @@ namespace SpitsOnline\Openprovider\Enums;
 enum RecordType: string
 {
     case A = 'A';
-    case Aaaa = 'AAAA';
-    case Caa = 'CAA';
-    case Cname = 'CNAME';
-    case Mx = 'MX';
-    case Ns = 'NS';
-    case Soa = 'SOA';
-    case Spf = 'SPF';
-    case Srv = 'SRV';
-    case Sshfp = 'SSHFP';
-    case Tlsa = 'TLSA';
-    case Txt = 'TXT';
+    case AAAA = 'AAAA';
+    case CAA = 'CAA';
+    case CNAME = 'CNAME';
+    case MX = 'MX';
+    case NS = 'NS';
+    case SOA = 'SOA';
+    case SPF = 'SPF';
+    case SRV = 'SRV';
+    case SSHFP = 'SSHFP';
+    case TLSA = 'TLSA';
+    case TXT = 'TXT';
 
     public function isEditable(): bool
     {
-        return $this !== self::Soa;
+        return $this !== self::SOA;
     }
 }

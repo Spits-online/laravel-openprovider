@@ -9,7 +9,7 @@ namespace SpitsOnline\Openprovider\Enums;
  */
 enum Autorenew: string
 {
-    case On = 'on';
-    case Off = 'off';
-    case Default = 'default';
+    case ON = 'on';
+    case OFF = 'off';
+    case DEFAULT = 'default';
 }

@@ -98,10 +98,10 @@ class ZoneRecordController
         return [
             $key => ['required', 'array'],
             "{$key}.name" => ['nullable', 'string'],
-            "{$key}.type" => ['required', Rule::enum(RecordType::class)->except([RecordType::Soa])],
+            "{$key}.type" => ['required', Rule::enum(RecordType::class)->except([RecordType::SOA])],
             "{$key}.value" => ['required', 'string'],
             "{$key}.ttl" => ['required', $existing ? 'integer' : Rule::enum(Ttl::class)],
-            "{$key}.prio" => ['nullable', 'integer', "required_if:{$key}.type,".RecordType::Mx->value],
+            "{$key}.prio" => ['nullable', 'integer', "required_if:{$key}.type,".RecordType::MX->value],
         ];
     }
 }

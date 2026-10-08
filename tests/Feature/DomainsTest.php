@@ -21,7 +21,7 @@ it('finds a domain', function () {
     expect($domain)
         ->id->toBe(1222095)
         ->status->toBe('ACT')
-        ->autorenew->toBe(Autorenew::Off)
+        ->autorenew->toBe(Autorenew::OFF)
         ->isLocked->toBeTrue()
         ->isPrivateWhoisEnabled->toBeFalse()
         ->ownerHandle->toBe('CV904717-NL')
@@ -106,7 +106,7 @@ it('registers a domain', function () {
         ownerHandle: 'CV904717-NL',
         adminHandle: 'CV904717-NL',
         nameServers: ['ns1.op.eu', Nameserver::create('ns2.op.nl', ip: '192.0.2.2')],
-        autorenew: Autorenew::Default,
+        autorenew: Autorenew::DEFAULT,
         attributes: ['promo_code' => 'SPRING'],
     );
 
@@ -142,7 +142,7 @@ it('transfers a domain', function () {
 it('updates only what is passed', function () {
     fakeOpenprovider(['domains/*' => Http::response(['code' => 0, 'data' => ['id' => 123456, 'status' => 'ACT']])]);
 
-    Openprovider::domains()->update(123456, autorenew: Autorenew::On, isLocked: false, ownerHandle: 'XX123456-XX');
+    Openprovider::domains()->update(123456, autorenew: Autorenew::ON, isLocked: false, ownerHandle: 'XX123456-XX');
 
     Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
         && $request->url() === DOMAINS.'/123456'

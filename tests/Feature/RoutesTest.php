@@ -172,7 +172,7 @@ it('accepts any stored TTL on the record being changed', function () {
     $this->actingAs(new User)
         ->putJson('dns-zone/records/demo-domain.nl', [
             'original_record' => record(overrides: ['ttl' => 600]),
-            'record' => record(overrides: ['ttl' => Ttl::Hour->value]),
+            'record' => record(overrides: ['ttl' => Ttl::HOUR->value]),
         ])
         ->assertNoContent();
 

@@ -14,7 +14,7 @@ use SpitsOnline\Openprovider\Testing\FakeDomains;
 
 it('serves seeded zones and applies record changes to them', function () {
     $www = Record::create(type: RecordType::A, value: '1.2.3.4', name: 'www');
-    $mail = Record::create(type: RecordType::Mx, value: 'mail.example.com', prio: 10);
+    $mail = Record::create(type: RecordType::MX, value: 'mail.example.com', prio: 10);
     $fake = Openprovider::fake()->withZone('example.com', [$www]);
 
     Openprovider::zones()->addRecords('example.com', [$mail]);
@@ -22,11 +22,11 @@ it('serves seeded zones and applies record changes to them', function () {
     Openprovider::zones()->removeRecords('example.com', [$mail]);
 
     expect(Openprovider::zones()->find('example.com')->records)->toEqual([$new])
-        ->and(Openprovider::zones()->records('example.com', RecordType::Mx)->all())->toBe([]);
+        ->and(Openprovider::zones()->records('example.com', RecordType::MX)->all())->toBe([]);
 
     $fake->assertRecordAdded('example.com', fn (Record $record) => $record->is($mail));
     $fake->assertRecordUpdated('example.com', fn (Record $original, Record $record) => $original->is($www) && $record->is($new));
-    $fake->assertRecordRemoved('example.com', fn (Record $record) => $record->type === RecordType::Mx);
+    $fake->assertRecordRemoved('example.com', fn (Record $record) => $record->type === RecordType::MX);
 
     Http::assertNothingSent();
 });
@@ -59,7 +59,7 @@ it('serves seeded domains and records domain changes', function () {
 
     $domain = Openprovider::domains()->findByName('example.com');
 
-    Openprovider::domains()->update($domain->id, autorenew: Autorenew::On);
+    Openprovider::domains()->update($domain->id, autorenew: Autorenew::ON);
     Openprovider::domains()->renew($domain->id);
     Openprovider::domains()->restore($domain->id);
     $registered = Openprovider::domains()->create('example.nl', ownerHandle: 'CV904717-NL');
@@ -75,7 +75,7 @@ it('serves seeded domains and records domain changes', function () {
             fn ($check) => $check->isAvailable()->toBeTrue(),
         );
 
-    $fake->assertDomainUpdated($domain->id, fn (array $changes) => $changes === ['autorenew' => Autorenew::On]);
+    $fake->assertDomainUpdated($domain->id, fn (array $changes) => $changes === ['autorenew' => Autorenew::ON]);
     $fake->assertDomainRenewed($domain->id);
     $fake->assertDomainRestored($domain->id);
     $fake->assertDomainRegistered('example.nl');

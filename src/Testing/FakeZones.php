@@ -112,7 +112,7 @@ class FakeZones extends Zones
         return new Zone(
             id: array_search($name, array_keys($this->fake->zoneStore()), true) + 1,
             name: $name,
-            type: ZoneType::Master,
+            type: ZoneType::MASTER,
             isActive: true,
             provider: null,
             records: $withRecords ? $records : [],

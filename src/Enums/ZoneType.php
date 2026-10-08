@@ -9,6 +9,6 @@ namespace SpitsOnline\Openprovider\Enums;
  */
 enum ZoneType: string
 {
-    case Master = 'master';
-    case Slave = 'slave';
+    case MASTER = 'master';
+    case SLAVE = 'slave';
 }

@@ -108,7 +108,7 @@ Openprovider::zones()->addRecords($domain, [
 ]);
 ```
 
-`DnsRecordTypes::MX` becomes `RecordType::Mx`, and so on.
+`DnsRecordTypes::MX` becomes `RecordType::MX`: only the class name changes.
 
 ### Export
 

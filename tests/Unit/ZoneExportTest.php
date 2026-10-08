@@ -13,7 +13,7 @@ use SpitsOnline\Openprovider\Exports\ZoneExport;
 it('writes a real xlsx with a bold, filterable heading row and one row per record', function () {
     $export = new ZoneExport([
         Record::create(RecordType::A, '1.2.3.4', 'www'),
-        Record::create(RecordType::Mx, 'mail.example.com', ttl: Ttl::Hour, prio: 10),
+        Record::create(RecordType::MX, 'mail.example.com', ttl: Ttl::HOUR, prio: 10),
     ]);
 
     $path = tempnam(sys_get_temp_dir(), 'zone-export').'.xlsx';

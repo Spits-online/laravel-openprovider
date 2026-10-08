@@ -113,7 +113,7 @@ class Zones
     ): void {
         $this->write('post', 'dns/zones', "create zone `{$name}`", [
             'domain' => DomainName::parse($name)->toArray(),
-            'type' => ($masterIp === null ? ZoneType::Master : ZoneType::Slave)->value,
+            'type' => ($masterIp === null ? ZoneType::MASTER : ZoneType::SLAVE)->value,
             'master_ip' => $masterIp,
             'records' => $this->serialize($records) ?: null,
             'secured' => $isDnssecEnabled ?: null,

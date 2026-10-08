@@ -25,7 +25,7 @@ final readonly class Record
         public RecordType $type,
         public string $value,
         public string $name = '',
-        public int $ttl = Ttl::FifteenMinutes->value,
+        public int $ttl = Ttl::FIFTEEN_MINUTES->value,
         public ?int $prio = null,
         public array $raw = [],
     ) {}
@@ -37,7 +37,7 @@ final readonly class Record
         RecordType $type,
         string $value,
         string $name = '',
-        Ttl $ttl = Ttl::FifteenMinutes,
+        Ttl $ttl = Ttl::FIFTEEN_MINUTES,
         ?int $prio = null,
     ): self {
         return new self($type, $value, $name, $ttl->value, $prio);

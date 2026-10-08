@@ -10,10 +10,10 @@ namespace SpitsOnline\Openprovider\Enums;
  */
 enum Ttl: int
 {
-    case FifteenMinutes = 900;
-    case Hour = 3600;
-    case ThreeHours = 10800;
-    case SixHours = 21600;
-    case TwelveHours = 43200;
-    case Day = 86400;
+    case FIFTEEN_MINUTES = 900;
+    case HOUR = 3600;
+    case THREE_HOURS = 10800;
+    case SIX_HOURS = 21600;
+    case TWELVE_HOURS = 43200;
+    case DAY = 86400;
 }
