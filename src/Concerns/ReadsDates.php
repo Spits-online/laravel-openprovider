@@ -18,7 +18,7 @@ trait ReadsDates
     /**
      * Openprovider's own format, used to write a date back.
      */
-    protected const DATE_FORMAT = 'Y-m-d H:i:s';
+    protected const string DATE_FORMAT = 'Y-m-d H:i:s';
 
     /**
      * @param  Fluent<array-key, mixed>  $data

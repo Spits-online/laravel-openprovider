@@ -109,7 +109,7 @@ it('shows the zone with its records', function () {
         ->getJson('dns-zone/records/demo-domain.nl')
         ->assertOk()
         ->assertJsonPath('data.name', 'demo-domain.nl')
-        ->assertJsonPath('data.records', [record()]);
+        ->assertJsonPath('data.records', [record(overrides: ['name' => 'www.demo-domain.nl'])]);
 });
 
 it('adds a record', function () {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpitsOnline\Openprovider\Testing;
 
 use Illuminate\Support\Fluent;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Assert as PHPUnit;
 use SpitsOnline\Openprovider\Data\Domain;
 use SpitsOnline\Openprovider\Data\DomainName;
@@ -36,11 +37,13 @@ class OpenproviderFake extends Openprovider
     }
 
     /**
+     * Seed a zone. Its records are stored the way Openprovider stores them; see `stored()`.
+     *
      * @param  list<Record>  $records
      */
     public function withZone(string $name, array $records = []): static
     {
-        $this->zones[$name] = $records;
+        $this->putZone($name, $records);
 
         return $this;
     }
@@ -162,7 +165,27 @@ class OpenproviderFake extends Openprovider
      */
     public function putZone(string $name, array $records): void
     {
-        $this->zones[$name] = $records;
+        $this->zones[$name] = array_map(fn (Record $record) => $this->stored($name, $record), $records);
+    }
+
+    /**
+     * @internal
+     *
+     * A record the way Openprovider stores it in `$zone`, as seen on production:
+     * under its full name (`www` becomes `www.example.com`, an empty name the zone
+     * name itself) and with a TXT value quoted.
+     */
+    public function stored(string $zone, Record $record): Record
+    {
+        $record = $record->stored();
+
+        $name = match (true) {
+            $record->name === '' => $zone,
+            $record->name === $zone, Str::endsWith($record->name, ".{$zone}") => $record->name,
+            default => "{$record->name}.{$zone}",
+        };
+
+        return new Record($record->type, $record->value, $name, $record->ttl, $record->prio, $record->raw);
     }
 
     /**

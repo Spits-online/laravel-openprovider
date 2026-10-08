@@ -21,7 +21,8 @@ it('serves seeded zones and applies record changes to them', function () {
     Openprovider::zones()->updateRecord('example.com', $www, $new = Record::create(type: RecordType::A, value: '5.6.7.8', name: 'www'));
     Openprovider::zones()->removeRecords('example.com', [$mail]);
 
-    expect(Openprovider::zones()->find('example.com')->records)->toEqual([$new])
+    // Stored under the full name, the way Openprovider stores it.
+    expect(Openprovider::zones()->find('example.com')->records)->toEqual([Record::create(type: RecordType::A, value: '5.6.7.8', name: 'www.example.com')])
         ->and(Openprovider::zones()->records('example.com', RecordType::MX)->all())->toBe([]);
 
     $fake->assertRecordAdded('example.com', fn (Record $record) => $record->is($mail));
@@ -43,6 +44,23 @@ it('stores TXT values quoted like Openprovider, and still removes the record you
 
     expect(Openprovider::zones()->find('demo-domain.nl')->records)->toBe([]);
     $fake->assertRecordRemoved('demo-domain.nl');
+});
+
+it('stores records under their full name like Openprovider, and still matches the short name', function () {
+    Openprovider::fake()->withZone('example.com', [
+        Record::create(RecordType::A, '1.2.3.4'),
+        Record::create(RecordType::A, '1.2.3.4', 'www'),
+        Record::create(RecordType::A, '1.2.3.4', 'shop.example.com'),
+    ]);
+
+    expect(array_map(fn (Record $record) => $record->name, Openprovider::zones()->find('example.com')->records))
+        ->toBe(['example.com', 'www.example.com', 'shop.example.com']);
+
+    Openprovider::zones()->removeRecords('example.com', [Record::create(RecordType::A, '1.2.3.4', 'www')]);
+    Openprovider::zones()->removeRecords('example.com', [Record::create(RecordType::A, '1.2.3.4', 'shop.example.com')]);
+
+    expect(array_map(fn (Record $record) => $record->name, Openprovider::zones()->find('example.com')->records))
+        ->toBe(['example.com']);
 });
 
 it('creates, lists and deletes zones', function () {
