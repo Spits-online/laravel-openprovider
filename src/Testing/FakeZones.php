@@ -76,7 +76,8 @@ class FakeZones extends Zones
 
     public function addRecords(string $zone, array $records, ?string $provider = null): void
     {
-        $this->fake->putZone($zone, [...$this->recordsOf($zone), ...$records]);
+        // Openprovider saves TXT values quoted; so does the fake.
+        $this->fake->putZone($zone, [...$this->recordsOf($zone), ...array_map(fn (Record $record) => $record->stored(), $records)]);
 
         foreach ($records as $record) {
             $this->fake->recordChange('record.added', $zone, $record);
@@ -86,7 +87,7 @@ class FakeZones extends Zones
     public function updateRecord(string $zone, Record $original, Record $record, ?string $provider = null): void
     {
         $this->fake->putZone($zone, array_map(
-            fn (Record $existing) => $existing->is($original) ? $record : $existing,
+            fn (Record $existing) => $existing->is($original) ? $record->stored() : $existing,
             $this->recordsOf($zone),
         ));
 

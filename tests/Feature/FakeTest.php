@@ -31,6 +31,20 @@ it('serves seeded zones and applies record changes to them', function () {
     Http::assertNothingSent();
 });
 
+it('stores TXT values quoted like Openprovider, and still removes the record you created', function () {
+    $fake = Openprovider::fake()->withZone('demo-domain.nl');
+    $txt = Record::create(RecordType::TXT, 'v=spf1 -all');
+
+    Openprovider::zones()->addRecords('demo-domain.nl', [$txt]);
+
+    expect(Openprovider::zones()->find('demo-domain.nl')->records[0]->value)->toBe('"v=spf1 -all"');
+
+    Openprovider::zones()->removeRecords('demo-domain.nl', [$txt]);
+
+    expect(Openprovider::zones()->find('demo-domain.nl')->records)->toBe([]);
+    $fake->assertRecordRemoved('demo-domain.nl');
+});
+
 it('creates, lists and deletes zones', function () {
     $fake = Openprovider::fake();
 

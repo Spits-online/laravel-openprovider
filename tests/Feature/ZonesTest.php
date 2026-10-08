@@ -195,6 +195,26 @@ it('removes records exactly as Openprovider returned them', function () {
     ]]]);
 });
 
+it('quotes a TXT value to match the record Openprovider stored', function () {
+    fakeOpenprovider(['dns/zones/*' => Http::response(openproviderFixture('success'))]);
+    $txt = Record::create(RecordType::TXT, 'v=spf1 -all', 'mail');
+
+    Openprovider::zones()->addRecords('demo-domain.nl', [$txt]);
+    Openprovider::zones()->removeRecords('demo-domain.nl', [$txt]);
+    Openprovider::zones()->updateRecord('demo-domain.nl', $txt, Record::create(RecordType::TXT, 'v=spf1 ~all', 'mail'));
+
+    $sent = Http::recorded()->map(fn (array $pair) => $pair[0]->data()['records'] ?? null)->filter()->values();
+
+    expect($sent->all())->toBe([
+        ['add' => [['name' => 'mail', 'type' => 'TXT', 'value' => 'v=spf1 -all', 'ttl' => 900]]],
+        ['remove' => [['name' => 'mail', 'type' => 'TXT', 'value' => '"v=spf1 -all"', 'ttl' => 900]]],
+        ['update' => [[
+            'original_record' => ['name' => 'mail', 'type' => 'TXT', 'value' => '"v=spf1 -all"', 'ttl' => 900],
+            'record' => ['name' => 'mail', 'type' => 'TXT', 'value' => 'v=spf1 ~all', 'ttl' => 900],
+        ]]],
+    ]);
+});
+
 it('throws when Openprovider does not confirm a change', function () {
     fakeOpenprovider(['dns/zones/*' => Http::response(['code' => 0, 'data' => ['success' => false]])]);
 

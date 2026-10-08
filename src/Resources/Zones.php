@@ -145,7 +145,7 @@ class Zones
     public function updateRecord(string $zone, Record $original, Record $record, ?string $provider = null): void
     {
         $this->updateZone($zone, ['update' => [[
-            'original_record' => $original->toArray(),
+            'original_record' => $original->stored()->toArray(),
             'record' => $record->toArray(),
         ]]], $provider, "update a record of `{$zone}`");
     }
@@ -155,7 +155,9 @@ class Zones
      */
     public function removeRecords(string $zone, array $records, ?string $provider = null): void
     {
-        $this->updateZone($zone, ['remove' => $this->serialize($records)], $provider, "remove records from `{$zone}`");
+        $stored = array_map(fn (Record $record) => $record->stored(), $records);
+
+        $this->updateZone($zone, ['remove' => $this->serialize($stored)], $provider, "remove records from `{$zone}`");
     }
 
     /**

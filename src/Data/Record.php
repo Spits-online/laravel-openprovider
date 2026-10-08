@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpitsOnline\Openprovider\Data;
 
 use Illuminate\Support\Fluent;
+use Illuminate\Support\Str;
 use SpitsOnline\Openprovider\Concerns\ListsFromArray;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Enums\Ttl;
@@ -77,10 +78,24 @@ final readonly class Record
     }
 
     /**
-     * Whether both records describe the same DNS entry, ignoring `$raw`.
+     * The record as Openprovider stores it. Openprovider saves a TXT value wrapped in
+     * quotes, and only removes or updates a TXT record when its value is quoted the
+     * same way, so a record built with `Record::create()` is quoted to match.
+     */
+    public function stored(): self
+    {
+        if ($this->type !== RecordType::TXT || (Str::length($this->value) > 1 && Str::startsWith($this->value, '"') && Str::endsWith($this->value, '"'))) {
+            return $this;
+        }
+
+        return new self($this->type, Str::wrap($this->value, '"'), $this->name, $this->ttl, $this->prio, $this->raw);
+    }
+
+    /**
+     * Whether both records describe the same DNS entry, ignoring `$raw` and TXT quotes.
      */
     public function is(self $record): bool
     {
-        return $this->toArray() === $record->toArray();
+        return $this->stored()->toArray() === $record->stored()->toArray();
     }
 }

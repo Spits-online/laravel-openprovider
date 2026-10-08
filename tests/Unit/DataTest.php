@@ -96,3 +96,23 @@ it('writes dates back in Openprovider\'s format', function () {
 
     expect($zone->toArray())->toMatchArray(['creation_date' => '2019-06-27 06:22:36', 'modification_date' => null]);
 });
+
+it('quotes a TXT value the way Openprovider stores it, once', function (string $value, string $stored) {
+    expect(Record::create(RecordType::TXT, $value)->stored()->value)->toBe($stored);
+})->with([
+    'plain' => ['v=spf1 -all', '"v=spf1 -all"'],
+    'already quoted' => ['"v=spf1 -all"', '"v=spf1 -all"'],
+    'split into strings' => ['"part one" "part two"', '"part one" "part two"'],
+    'a lone quote' => ['"', '"""'],
+]);
+
+it('leaves other record types as they are', function () {
+    $record = Record::create(RecordType::A, '1.2.3.4');
+
+    expect($record->stored())->toBe($record);
+});
+
+it('treats a TXT record and its quoted copy as the same record', function () {
+    expect(Record::create(RecordType::TXT, 'x')->is(Record::create(RecordType::TXT, '"x"')))->toBeTrue()
+        ->and(Record::create(RecordType::TXT, 'x')->is(Record::create(RecordType::TXT, 'y')))->toBeFalse();
+});
