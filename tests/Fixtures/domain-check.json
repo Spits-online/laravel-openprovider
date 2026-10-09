@@ -1,0 +1,26 @@
+{
+    "code": 0,
+    "data": {
+        "results": [
+            {
+                "domain": "some-amazing-example.com",
+                "price": {
+                    "product": {"currency": "USD", "price": 8.57},
+                    "reseller": {"currency": "EUR", "price": 7.53}
+                },
+                "status": "free"
+            },
+            {
+                "domain": "god.tools",
+                "is_premium": true,
+                "premium": {"price": {"create": 250}},
+                "price": {
+                    "product": {"currency": "USD", "price": 250},
+                    "reseller": {"currency": "EUR", "price": 219.8}
+                },
+                "status": "free"
+            }
+        ]
+    },
+    "desc": ""
+}

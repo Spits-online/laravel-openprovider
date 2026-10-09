@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Credentials
+    |--------------------------------------------------------------------------
+    |
+    | The Openprovider account the API logs in with. The account needs API
+    | access enabled in the Openprovider control panel. The IP address is the
+    | one of the server that makes the requests, sent along with the login.
+    |
+    */
+
+    'username' => env('OPENPROVIDER_USERNAME'),
+    'password' => env('OPENPROVIDER_PASSWORD'),
+    'ip' => env('OPENPROVIDER_IP'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | API
+    |--------------------------------------------------------------------------
+    |
+    | Point this at Openprovider's sandbox to test without buying anything:
+    | http://api.sandbox.openprovider.nl:8480/v1beta
+    |
+    */
+
+    'base_url' => env('OPENPROVIDER_BASE_URL', 'https://api.openprovider.eu/v1beta'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Openprovider sends dates without an offset (`2026-05-01 12:00:00`) and
+    | doesn't document their timezone. They are read in this timezone, or in
+    | the app's timezone when it isn't set.
+    |
+    */
+
+    'timezone' => env('OPENPROVIDER_TIMEZONE'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | DNS record routes
+    |--------------------------------------------------------------------------
+    |
+    | JSON endpoints to read, add, change and remove the records of a DNS
+    | zone, for apps that manage DNS from their own front end. They are off
+    | until an app enables them, and run behind `auth` by default, because
+    | they change live DNS.
+    |
+    | See https://github.com/Spits-online/laravel-openprovider#dns-record-routes
+    |
+    */
+
+    'routes' => [
+        'enabled' => false,
+        'prefix' => '',
+        'middleware' => ['web', 'auth'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Export routes
+    |--------------------------------------------------------------------------
+    |
+    | Routes that download account data as .xlsx, such as the records of a DNS
+    | zone. They need maatwebsite/excel, are off until an app enables them,
+    | and run behind `auth` by default, separately from the DNS record routes.
+    |
+    | See https://github.com/Spits-online/laravel-openprovider#exporting-a-zone-to-excel
+    |
+    */
+
+    'exports' => [
+        'enabled' => false,
+        'prefix' => '',
+        'middleware' => ['web', 'auth'],
+    ],
+
+];

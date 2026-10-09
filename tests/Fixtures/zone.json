@@ -1,0 +1,34 @@
+{
+    "code": 0,
+    "data": {
+        "id": 9146574,
+        "reseller_id": 204661,
+        "type": "master",
+        "name": "demo-domain.nl",
+        "active": true,
+        "creation_date": "2019-06-27 06:22:36",
+        "modification_date": "2019-06-27 06:22:36",
+        "records": [
+            {
+                "creation_date": "",
+                "ip": "127.0.0.1",
+                "modification_date": "",
+                "name": "www.demo-domain.nl",
+                "ttl": 900,
+                "type": "A",
+                "value": "1.2.3.4"
+            },
+            {
+                "creation_date": "",
+                "ip": "127.0.0.1",
+                "modification_date": "",
+                "name": "demo-domain.nl",
+                "prio": 10,
+                "ttl": 86400,
+                "type": "MX",
+                "value": "mail.demo-domain.nl"
+            }
+        ]
+    },
+    "desc": ""
+}

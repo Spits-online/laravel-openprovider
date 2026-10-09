@@ -1,0 +1,20 @@
+{
+    "code": 0,
+    "data": {
+        "results": [
+            {
+                "active": true,
+                "creation_date": "2019-06-27 06:22:36",
+                "id": 9146574,
+                "ip": "127.0.0.1",
+                "is_deleted": false,
+                "modification_date": "2019-06-27 06:22:36",
+                "name": "demo-domain.nl",
+                "reseller_id": 204661,
+                "type": "master"
+            }
+        ],
+        "total": 1
+    },
+    "desc": ""
+}

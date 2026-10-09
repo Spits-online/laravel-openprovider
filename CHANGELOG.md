@@ -1,9 +1,53 @@
 # Changelog
 
-All notable changes to `laravel-openprovider-api` will be documented in this file.
+All notable changes to `laravel-openprovider` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [2.0.0] - 2026-10-08
+
+### Added
+- `Openprovider::zone('example.com')->records()` to read, add, update and delete records, one request each, and to delete several records in one request. Picking a zone sends no request.
+- `Record::create()` gives an MX record priority 10 when you leave the priority out, and refuses an SOA record (`InvalidRecord`), which Openprovider generates.
+- Records read from a zone (`ZoneRecord`) and domains you fetched (`Domain`) act on themselves: `$record->update()`, `$record->delete()`, `$domain->renew()`, `$domain->lock()` and the others. Neither stores the Openprovider password when it is serialized for a queued job.
+- `Openprovider::zones()` to list and create zones, and `Openprovider::zone(...)->get()` and `->delete()` for one zone. `->provider(Provider::SECTIGO)` works with a premium DNS zone.
+- `Openprovider::domains()` to list, find by name, check, register and transfer domains, and `Openprovider::domain($id)` to get, update, lock, unlock, renew, restore and delete one, and to get or reset its auth code.
+- Typed `Zone`, `ZoneRecord`, `SoaRecord`, `Domain`, `DomainName`, `Nameserver` and `DomainCheck` objects, each with the full answer in `$raw`, and `RecordType`, `Ttl`, `ZoneType`, `Provider` and `Autorenew` enums. A zone's read-only SOA record is `$zone->soa`, apart from the records you can change.
+- Listing zones, domains and records returns lazy collections that fetch one page at a time.
+- `Openprovider::fake()`: an in-memory Openprovider for testing apps, which answers the same requests Openprovider does and stores records the way it does, with `assertRecordAdded()`, `assertDomainRegistered()` and the other assertions.
+- Exceptions that say what went wrong: `RequestFailed` (with Openprovider's `$status`, `$errorCode` and `$body`), `ConnectionFailed`, `MissingConfiguration` (names the env key to set), `InvalidDomainName`, `InvalidRecord` and `MissingDependency`, all extending `OpenproviderException`.
+- An app's `config/openprovider.php` only needs the keys it changes. It is merged over the defaults key by key.
+- Support for Openprovider's sandbox through `OPENPROVIDER_BASE_URL`.
+- Dates on `Domain` and `Zone` are immutable Carbon instances, read in the app's timezone or `OPENPROVIDER_TIMEZONE`, because Openprovider sends them without an offset.
+- The export route takes an optional `filename` to name the download. It defaults to `dns_zone_{domain}.xlsx`, as before.
+
+### Changed
+- **Breaking:** the package is renamed to `spits-online/laravel-openprovider`.
+- **Breaking:** the namespace is now `SpitsOnline\Openprovider` instead of `Spits\LaravelOpenproviderApi`.
+- **Breaking:** requires PHP 8.3+ and Laravel 12 or 13.
+- **Breaking:** the config file is `config/openprovider.php` instead of `config/openprovider-api.php`, and the route middleware moved from `middleware` to `routes.middleware`.
+- **Breaking:** `DomainService` and `DnsService` are replaced by `Openprovider::domain()`, `Openprovider::domains()`, `Openprovider::zone()` and `Openprovider::zones()`. These return typed objects and throw on failure instead of returning the raw HTTP response.
+- **Breaking:** the DNS record routes are off until an app sets `routes.enabled`, and run behind the `web` and `auth` middleware by default.
+- **Breaking:** the DNS record routes answer changes with `204 No Content`, and invalid requests with Laravel's standard validation response. `show` returns the zone as `data`, and no longer takes an `options` query parameter.
+- **Breaking:** new records must use a TTL Openprovider accepts (900, 3600, 10800, 21600, 43200 or 86400 seconds). Openprovider saved any other value as a day.
+- **Breaking:** the export route is off until an app sets `exports.enabled`, with its own `exports.prefix` and `exports.middleware` (`web` and `auth` by default), and `maatwebsite/excel` is optional. Install it (the export is tested against 4.x) to use the export route.
+- **Breaking:** `DnsRecordTypes` is replaced by the `RecordType` enum, and `DnsZoneExport` by `ZoneExport`, which takes records or a whole zone (`ZoneExport::fromZone()`).
+- **Breaking:** the DNS record routes only accept a `provider` Openprovider has (`sectigo`).
+- The login token is cached for 47 hours (Openprovider's tokens are valid for 48) instead of 8, per account.
+
+### Removed
+- **Breaking:** `OpenproviderClient`, `OpenproviderAuth`, `DomainController` and the three DNS record form requests.
+- **Breaking:** the `LaravelOpenproviderApi` facade alias, which pointed at a class that didn't exist.
+
+### Fixed
+- The DNS record routes were registered without any middleware by default, so anyone could read and change DNS records.
+- Errors from Openprovider were returned to the browser with status 200. They now throw `RequestFailed`.
+- The MX priority rule checked a field that doesn't exist, so MX records could be sent without a priority.
+- Removing records accepted an empty list.
+- The export crashed when Openprovider returned an error.
 
 ## [1.1.0] - 2026-08-26
 
@@ -71,6 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DnsZoneExport` for exporting a DNS zone to `.xlsx` via `maatwebsite/excel`.
 - Publishable `config/openprovider-api.php`.
 
-[1.1.0]: https://github.com/Spits-online/laravel-openprovider-api/compare/V1.0.1...v1.1.0
-[1.0.1]: https://github.com/Spits-online/laravel-openprovider-api/compare/v1.0.0...V1.0.1
-[1.0.0]: https://github.com/Spits-online/laravel-openprovider-api/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Spits-online/laravel-openprovider/compare/V2.0.0...HEAD
+[2.0.0]: https://github.com/Spits-online/laravel-openprovider/compare/v1.1.0...V2.0.0
+[1.1.0]: https://github.com/Spits-online/laravel-openprovider/compare/V1.0.1...v1.1.0
+[1.0.1]: https://github.com/Spits-online/laravel-openprovider/compare/v1.0.0...V1.0.1
+[1.0.0]: https://github.com/Spits-online/laravel-openprovider/releases/tag/v1.0.0
