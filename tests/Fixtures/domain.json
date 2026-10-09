@@ -18,8 +18,11 @@
         "id": 1222095,
         "is_deleted": false,
         "is_dnssec_enabled": true,
+        "is_lockable": true,
         "is_locked": true,
+        "is_premium": false,
         "is_private_whois_enabled": false,
+        "is_sectigo_dns_enabled": false,
         "name_servers": [
             {
                 "ip": "",
@@ -35,6 +38,11 @@
             }
         ],
         "ns_group": "testin",
+        "order_date": "2021-09-27 09:03:04",
+        "owner": {
+            "company_name": "Example B.V.",
+            "full_name": "Jane Doe"
+        },
         "owner_handle": "CV904717-NL",
         "registry_expiration_date": "2022-09-27 07:03:04",
         "renewal_date": "2022-09-27 07:03:04",

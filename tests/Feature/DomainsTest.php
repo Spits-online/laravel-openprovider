@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use SpitsOnline\Openprovider\Data\DomainCheck;
+use SpitsOnline\Openprovider\Data\DomainOwner;
 use SpitsOnline\Openprovider\Data\Nameserver;
 use SpitsOnline\Openprovider\Enums\Autorenew;
 use SpitsOnline\Openprovider\Exceptions\InvalidDomainName;
@@ -36,6 +37,15 @@ it('gets a domain by its id', function () {
         ->adminHandle->toBe('CV904717-NL')
         ->techHandle->toBe('CV904717-NL')
         ->billingHandle->toBe('CV904717-NL')
+        ->nsGroup->toBe('testin')
+        ->isLockable->toBeTrue()
+        ->isDnssecEnabled->toBeTrue()
+        ->isSectigoDnsEnabled->toBeFalse()
+        ->isPremium->toBeFalse()
+        ->comments->toBe('Any comments go')
+        ->and($domain->owner)->toEqual(new DomainOwner(fullName: 'Jane Doe', companyName: 'Example B.V.'))
+        ->and($domain->orderDate->format('Y-m-d H:i:s'))->toBe('2021-09-27 09:03:04')
+        ->and($domain->activeDate->format('Y-m-d H:i:s'))->toBe('2021-09-27 07:06:00')
         ->and($domain->expirationDate->format('Y-m-d H:i:s'))->toBe('2022-09-27 07:03:04')
         ->and($domain->renewalDate->format('Y-m-d H:i:s'))->toBe('2022-09-27 07:03:04')
         ->and($domain)
@@ -215,4 +225,17 @@ it('leaves the client out when a domain is serialized, so a queued job never sto
 
     expect($serialized)->not->toContain('secret-password')
         ->and(unserialize($serialized)->id)->toBe(1222095);
+});
+
+it('leaves the 2.1 fields empty when Openprovider sends none of them', function () {
+    Openprovider::fake()->withDomain('example.com');
+
+    expect(Openprovider::domains()->find('example.com'))
+        ->owner->toBeNull()
+        ->nsGroup->toBeNull()
+        ->orderDate->toBeNull()
+        ->activeDate->toBeNull()
+        ->isLockable->toBeFalse()
+        ->isSectigoDnsEnabled->toBeFalse()
+        ->comments->toBeNull();
 });

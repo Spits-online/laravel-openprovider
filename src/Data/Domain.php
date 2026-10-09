@@ -25,7 +25,12 @@ final readonly class Domain
     /**
      * @param  ?string  $status  Openprovider's status code, e.g. `ACT` (active) or `REQ` (requested)
      * @param  list<Nameserver>  $nameServers
+     * @param  ?CarbonInterface  $renewalDate  when the domain must be renewed by; Openprovider's reference for when it expires
      * @param  array<array-key, mixed>  $raw
+     * @param  ?string  $nsGroup  the nameserver group the domain uses, e.g. `dns-openprovider`
+     * @param  bool  $isLockable  whether the registry lets the domain be locked against transfers
+     * @param  bool  $isSectigoDnsEnabled  whether the domain has an active premium DNS zone at Sectigo
+     * @param  bool  $isPremium  whether the domain has a premium price
      */
     public function __construct(
         public int $id,
@@ -43,6 +48,16 @@ final readonly class Domain
         public ?CarbonInterface $renewalDate,
         public array $raw,
         private Openprovider $openprovider,
+        // Added in 2.1, after the others so code that builds a Domain itself keeps working.
+        public ?DomainOwner $owner = null,
+        public ?string $nsGroup = null,
+        public ?CarbonInterface $orderDate = null,
+        public ?CarbonInterface $activeDate = null,
+        public bool $isLockable = false,
+        public bool $isDnssecEnabled = false,
+        public bool $isSectigoDnsEnabled = false,
+        public bool $isPremium = false,
+        public ?string $comments = null,
     ) {}
 
     /**
@@ -70,6 +85,15 @@ final readonly class Domain
             renewalDate: self::date($data, 'renewal_date'),
             raw: $payload,
             openprovider: $openprovider,
+            owner: $data->filled('owner') ? DomainOwner::fromArray($data->array('owner')) : null,
+            nsGroup: $data->string('ns_group')->value() ?: null,
+            orderDate: self::date($data, 'order_date'),
+            activeDate: self::date($data, 'active_date'),
+            isLockable: $data->boolean('is_lockable'),
+            isDnssecEnabled: $data->boolean('is_dnssec_enabled'),
+            isSectigoDnsEnabled: $data->boolean('is_sectigo_dns_enabled'),
+            isPremium: $data->boolean('is_premium'),
+            comments: $data->string('comments')->value() ?: null,
         );
     }
 
