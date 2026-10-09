@@ -31,8 +31,6 @@ use SpitsOnline\Openprovider\Facades\Openprovider;
 Openprovider::zone('example.com')
     ->records()
     ->add(Record::create(RecordType::A, '1.2.3.4', name: 'www'));
-
-// every record, as ZoneRecord objects
 Openprovider::zone('example.com')->records()->get();
 
 Openprovider::domains()->find('example.com')->renew();
@@ -55,9 +53,10 @@ Add your Openprovider login to `.env`:
 ```env
 OPENPROVIDER_USERNAME=
 OPENPROVIDER_PASSWORD=
-# The IP address of the server that calls the API, sent with the login
 OPENPROVIDER_IP=
 ```
+
+`OPENPROVIDER_IP` is the IP address of the server that calls the API; it's sent with the login.
 
 The account needs API access, which you enable in the Openprovider control panel.
 
@@ -259,14 +258,12 @@ Openprovider::zones()->get(namePattern: 'example*', provider: Provider::SECTIGO)
 
 Openprovider::zones()->create('example.com', records: [Record::create(RecordType::A, '1.2.3.4')]);
 Openprovider::zones()->create('example.com', dnssec: true, template: 'my-template', provider: Provider::SECTIGO);
-
-// A slave zone copies its records from your own master server
 Openprovider::zones()->createSlave('example.com', masterIp: '192.0.2.1');
 
 Openprovider::zone('example.com')->delete();
 ```
 
-Openprovider can't restore a deleted zone.
+`createSlave()` makes a slave zone, which copies its records from your own master server. Openprovider can't restore a deleted zone.
 
 ## Managing domains
 
@@ -524,9 +521,11 @@ use SpitsOnline\Openprovider\Facades\Openprovider;
 $fake = Openprovider::fake()
     ->withZone('example.com', Record::create(RecordType::A, '1.2.3.4'), Record::create(RecordType::MX, 'mail.example.com'))
     ->withDomain('example.com');
+```
 
-// ... run the code under test ...
+Run the code under test, then assert on what changed:
 
+```php
 Openprovider::assertRecordAdded(
     'example.com',
     fn (Record $record) => $record->value === '5.6.7.8',
