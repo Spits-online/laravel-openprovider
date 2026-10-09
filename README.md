@@ -296,13 +296,24 @@ $domain->name->extension;         // "com"
 $domain->status;                  // "ACT" (active) or "REQ" (requested)
 $domain->autorenew;               // Autorenew::ON, Autorenew::OFF or Autorenew::DEFAULT
 $domain->nameServers;             // list<Nameserver>, each with a name, ip and ip6
+$domain->nsGroup;                 // "dns-openprovider", the nameserver group it uses, or null
 $domain->isLocked;                // true
+$domain->isLockable;              // whether the registry lets it be locked against transfers
 $domain->isPrivateWhoisEnabled;   // false
+$domain->isDnssecEnabled;         // true
+$domain->isSectigoDnsEnabled;     // whether it has an active premium DNS zone at Sectigo
+$domain->isPremium;               // whether it has a premium price
+$domain->owner?->fullName;        // "Jane Doe", also owner->companyName
 $domain->ownerHandle;             // "CV904717-NL", also adminHandle, techHandle and billingHandle
-$domain->expirationDate;          // CarbonImmutable or null, see "Dates and timezones"
-$domain->renewalDate;             // CarbonImmutable or null
+$domain->orderDate;               // CarbonImmutable or null, see "Dates and timezones"
+$domain->activeDate;              // CarbonImmutable or null
+$domain->renewalDate;             // CarbonImmutable or null: renew before this date
+$domain->expirationDate;          // CarbonImmutable or null
+$domain->comments;                // your own notes on the domain, or null
 $domain->raw;                     // the full answer from Openprovider
 ```
+
+Rely on `renewalDate` for when a domain has to be renewed. Openprovider documents `expirationDate` as not being its primary reference for expiry.
 
 List every domain lazily. The pattern matches the name without its extension:
 

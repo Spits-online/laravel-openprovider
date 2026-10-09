@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-09
+
+### Added
+- More of what Openprovider returns for a domain, typed: `owner` (`DomainOwner`, with `fullName` and `companyName`), `nsGroup`, `orderDate`, `activeDate`, `isLockable`, `isDnssecEnabled`, `isSectigoDnsEnabled`, `isPremium` and `comments`.
+
 ## [2.0.0] - 2026-10-08
 
 ### Added
@@ -115,7 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DnsZoneExport` for exporting a DNS zone to `.xlsx` via `maatwebsite/excel`.
 - Publishable `config/openprovider-api.php`.
 
-[Unreleased]: https://github.com/Spits-online/laravel-openprovider/compare/V2.0.0...HEAD
+[Unreleased]: https://github.com/Spits-online/laravel-openprovider/compare/V2.1.0...HEAD
+[2.1.0]: https://github.com/Spits-online/laravel-openprovider/compare/V2.0.0...V2.1.0
 [2.0.0]: https://github.com/Spits-online/laravel-openprovider/compare/v1.1.0...V2.0.0
 [1.1.0]: https://github.com/Spits-online/laravel-openprovider/compare/V1.0.1...v1.1.0
 [1.0.1]: https://github.com/Spits-online/laravel-openprovider/compare/v1.0.0...V1.0.1
