@@ -103,6 +103,8 @@ $reseller = Openprovider::fromConfig([
 $reseller->zone('example.com')->records()->get();
 ```
 
+`Openprovider::fake()` only replaces the client behind the facade. A client you build with `fromConfig()` still calls Openprovider, so fake its requests in your tests with `Http::fake()`.
+
 ### How the login works
 
 The package logs in on the first request and caches the token for 47 hours. Openprovider's tokens are valid for 48, so a cached token never expires mid-request. Each account has its own cached token, and a failed login caches nothing.
