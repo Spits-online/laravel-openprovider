@@ -1,6 +1,6 @@
 {
     "name": "spits-online/laravel-openprovider",
-    "description": "Openprovider domains and DNS for Laravel",
+    "description": "Manage Openprovider domains and DNS in Laravel",
     "keywords": [
         "spits",
         "laravel",

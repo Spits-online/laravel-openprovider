@@ -12,7 +12,7 @@
     </picture>
   </a>
 
-<h1>Openprovider domains and DNS for Laravel</h1>
+<h1>Manage Openprovider domains and DNS in Laravel</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/spits-online/laravel-openprovider.svg?style=flat-square)](https://packagist.org/packages/spits-online/laravel-openprovider)
 [![Tests](https://img.shields.io/github/actions/workflow/status/Spits-online/laravel-openprovider/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/Spits-online/laravel-openprovider/actions/workflows/run-tests.yml)
@@ -21,7 +21,7 @@
 
 </div>
 
-A typed client for the domains and DNS zones in your [Openprovider](https://www.openprovider.com) account. It logs in for you, returns data objects instead of arrays, and ships a fake for your tests. It can also add JSON routes for managing DNS records and exporting a zone to Excel.
+Work with the domains and DNS records in your [Openprovider](https://www.openprovider.com) account from Laravel. Add a record, register a domain, or export a zone to Excel with a single call.
 
 ```php
 use SpitsOnline\Openprovider\Data\Record;
