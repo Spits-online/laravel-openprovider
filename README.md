@@ -28,12 +28,11 @@ use SpitsOnline\Openprovider\Data\Record;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Facades\Openprovider;
 
-Openprovider::zones()->addRecords('example.com', [
-    Record::create(type: RecordType::A, value: '1.2.3.4', name: 'www'),
-]);
+Openprovider::zone('example.com')->records()->add(Record::create(RecordType::A, '1.2.3.4', name: 'www'));
 
-$zone = Openprovider::zones()->find('example.com');
-$zone->records; // list<Record>
+Openprovider::zone('example.com')->records()->get(); // every record, as ZoneRecord objects
+
+Openprovider::domains()->find('example.com')->renew();
 ```
 
 ## Requirements
@@ -101,7 +100,7 @@ $reseller = Openprovider::fromConfig([
     'ip' => '203.0.113.10',
 ]);
 
-$reseller->zones()->find('example.com');
+$reseller->zone('example.com')->records()->get();
 ```
 
 ### How the login works
@@ -110,73 +109,136 @@ The package logs in on the first request and caches the token for 47 hours. Open
 
 ## Managing DNS records
 
-Records are `Record` objects. Build one with `Record::create()`:
+Pick a zone with `Openprovider::zone()`, then work with its `records()`. Picking a zone sends no request; every action after it sends exactly one:
+
+```php
+use SpitsOnline\Openprovider\Data\Record;
+use SpitsOnline\Openprovider\Enums\RecordType;
+use SpitsOnline\Openprovider\Facades\Openprovider;
+
+Openprovider::zone('example.com')->records()->add(
+    Record::create(RecordType::A, '1.2.3.4', name: 'www'),
+    Record::create(RecordType::MX, 'mail.example.com'),
+);
+```
+
+### Building a record
+
+Build a record with `Record::create()`:
 
 ```php
 use SpitsOnline\Openprovider\Data\Record;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Enums\Ttl;
 
-$mx = Record::create(
-    type: RecordType::MX,
-    value: 'mail.example.com',
-    ttl: Ttl::HOUR,
-    prio: 10,
-);
+Record::create(RecordType::A, '1.2.3.4');                    // the domain itself
+Record::create(RecordType::A, '1.2.3.4', name: 'www');       // www.example.com
+Record::create(RecordType::MX, 'mail.example.com', ttl: Ttl::HOUR, priority: 5);
+Record::create(RecordType::TXT, 'v=spf1 include:_spf.example.com -all');
 ```
 
-- `name` is the host before the zone name, such as `www`. Leave it out for the zone itself.
+- `name` is the host before the zone name, such as `www`. Leave it out for the domain itself.
 - `ttl` is one of the TTLs Openprovider accepts: `Ttl::FIFTEEN_MINUTES` (the default), `Ttl::HOUR`, `Ttl::THREE_HOURS`, `Ttl::SIX_HOURS`, `Ttl::TWELVE_HOURS` or `Ttl::DAY`. Openprovider would silently save any other value as a day.
-- `prio` is the priority, which MX records need.
+  Records with the same name and type share one TTL, as DNS requires. A record you add takes the TTL the others already have, and updating one record's TTL changes it for all of them. Adding a TXT verification record to a domain with a one-day SPF record and then updating it with `Ttl::FIFTEEN_MINUTES` gives the SPF record a 15-minute TTL too.
+- `priority` is for MX and SRV records. An MX record gets priority `10` when you leave it out (`Record::DEFAULT_MX_PRIORITY`), because Openprovider requires one.
 
-Add, change and remove records:
+Every type in `RecordType` can be built except `SOA`, which Openprovider generates: `Record::create(RecordType::SOA, …)` throws `InvalidRecord`.
 
-```php
-use SpitsOnline\Openprovider\Facades\Openprovider;
+### Reading records
 
-Openprovider::zones()->addRecords('example.com', [$mx]);
-
-Openprovider::zones()->updateRecord('example.com', $original, $changed);
-
-Openprovider::zones()->removeRecords('example.com', [$mx]);
-```
-
-`updateRecord()` and `removeRecords()` find the record by its name, type, value, TTL and priority. Pass records the way Openprovider returned them, for example from `find()`:
+`records()->get()` returns every record of the zone as a lazy collection that fetches them 500 at a time, as you use them. `ofType()` lets Openprovider filter them:
 
 ```php
-$zone = Openprovider::zones()->find('example.com');
+use SpitsOnline\Openprovider\Data\ZoneRecord;
+use SpitsOnline\Openprovider\Enums\RecordType;
 
-$old = collect($zone->records)
-    ->firstWhere('type', RecordType::MX);
+$records = Openprovider::zone('example.com')->records()->get();
+$records = Openprovider::zone('example.com')->records()->ofType(RecordType::TXT);
 
-Openprovider::zones()->removeRecords('example.com', [$old]);
+$record = $records->first();
+$record->name;      // "www.example.com": Openprovider returns the full name
+$record->type;      // RecordType::A
+$record->value;     // "1.2.3.4", or "\"v=spf1 -all\"" for a TXT record: Openprovider quotes TXT values
+$record->ttl;       // 900
+$record->priority;  // 10 for an MX record, otherwise null
+$record->zone;      // "example.com"
+$record->raw;       // the full answer from Openprovider
 ```
 
-Openprovider saves TXT values wrapped in quotes (`"v=spf1 -all"`) and only matches a TXT record whose value is quoted the same way. The package adds the quotes when it looks a record up, so a TXT record you built with `Record::create()` can be removed or updated as it is. `Openprovider::fake()` stores records the same way Openprovider does: TXT values quoted, and every record under its full name (`www` becomes `www.example.com`, an empty name the zone name itself).
+### Changing and deleting records
+
+A record you read from a zone is a `ZoneRecord`. It knows its zone, so it can update or delete itself, with one request each:
+
+```php
+$record->update(Record::create(RecordType::A, '5.6.7.8', name: 'www'));
+$record->delete();
+```
+
+To delete several records at once, pass them all to `delete()`. It sends one request however many you pass:
+
+```php
+$zone = Openprovider::zone('example.com');
+
+$zone->records()->delete($first, $second);
+$zone->records()->delete(...$zone->records()->ofType(RecordType::TXT));
+```
+
+Unlike Eloquent's `$user->posts()->delete()`, this never deletes every record: it needs at least one, and only deletes the ones you pass.
+
+Openprovider returns full names (`www.example.com`), but only matches a record to update or delete by its name relative to the zone (`www`). With a full name, it reports success and does nothing: an update adds the new record and keeps the old one. The package always sends relative names, so this is handled for you, including when you build a record with a full name.
+
+`records()->update()` and `records()->delete()` also take a record you built, matched by its name, type, value, TTL and priority. Openprovider saves TXT values wrapped in quotes and only matches a TXT record quoted the same way, so the package adds the quotes for you:
+
+```php
+$zone->records()->update(Record::create(RecordType::A, '1.2.3.4', name: 'www'), Record::create(RecordType::A, '5.6.7.8', name: 'www'));
+$zone->records()->delete(Record::create(RecordType::TXT, 'v=spf1 -all'));
+```
 
 To compare records or send them on yourself:
 
 ```php
-$record->is($other);  // same name, type, value, TTL and priority, ignoring TXT quotes
-$record->stored();    // the record as Openprovider stores it, with a TXT value quoted
-$record->toArray();   // ['name' => 'www', 'type' => 'A', 'value' => '1.2.3.4', 'ttl' => 900]
+$record->is($other);   // same name, type, value, TTL and priority, ignoring TXT quotes
+$record->toRecord();   // a ZoneRecord as a Record you can change and add elsewhere
+$record->toArray();    // ['name' => 'www.example.com', 'type' => 'A', 'value' => '1.2.3.4', 'ttl' => 900]
+Record::create(RecordType::TXT, 'x')->stored()->value;  // "\"x\"", the value as Openprovider stores it
 ```
 
-SOA records are generated by Openprovider and can't be changed. `RecordType::SOA->isEditable()` returns `false`.
+### The SOA record
 
-### Reading records
-
-`find()` returns the zone with its records:
+Openprovider generates every zone's SOA record, so it can't be added, changed or deleted. It isn't one of the zone's `records()`, and there is no `Record::soa()`. Read it from the zone:
 
 ```php
-$zone = Openprovider::zones()->find('example.com');
+$zone = Openprovider::zone('example.com')->get();
+
+$zone->soa->value;  // "ns1.example.com dns.openprovider.eu 2026100803 10800 3600 604800 3600"
+```
+
+### Premium DNS
+
+For a zone hosted by a premium DNS provider, name the provider after the zone. Everything after it works the same:
+
+```php
+use SpitsOnline\Openprovider\Enums\Provider;
+
+Openprovider::zone('example.com')->provider(Provider::SECTIGO)->records()->add($record);
+```
+
+Records read from a premium zone remember their provider, so `$record->delete()` goes to the right place.
+
+## Managing zones
+
+```php
+use SpitsOnline\Openprovider\Facades\Openprovider;
+
+$zone = Openprovider::zone('example.com')->get();
 
 $zone->id;          // 9146574
 $zone->name;        // "example.com"
 $zone->type;        // ZoneType::MASTER or ZoneType::SLAVE
 $zone->isActive;    // true
-$zone->provider;    // "sectigo" for premium DNS, otherwise null
-$zone->records;     // list<Record>
+$zone->provider;    // Provider::SECTIGO for premium DNS, otherwise null
+$zone->records;     // list<ZoneRecord>
+$zone->soa;         // the read-only SoaRecord
 $zone->createdAt;   // CarbonImmutable or null, see "Dates and timezones"
 $zone->modifiedAt;  // CarbonImmutable or null
 $zone->raw;         // the full answer from Openprovider
@@ -184,58 +246,46 @@ $zone->raw;         // the full answer from Openprovider
 $zone->toArray();   // the zone in Openprovider's own keys, as the `show` route returns it
 ```
 
-Leave the records out when you only need the zone:
+List every zone lazily, a page at a time as you use them, and create or delete zones:
 
 ```php
-$zone = Openprovider::zones()->find('example.com', withRecords: false);
+Openprovider::zones()->get();
+Openprovider::zones()->get(namePattern: 'example*', provider: Provider::SECTIGO)->take(10);
+
+Openprovider::zones()->create('example.com', records: [Record::create(RecordType::A, '1.2.3.4')]);
+Openprovider::zones()->create('example.com', dnssec: true, template: 'my-template', provider: Provider::SECTIGO);
+
+// A slave zone copies its records from your own master server
+Openprovider::zones()->createSlave('example.com', masterIp: '192.0.2.1');
+
+Openprovider::zone('example.com')->delete();
 ```
 
-For large zones, `records()` returns a lazy collection that fetches the records 500 at a time, as you use them:
-
-```php
-Openprovider::zones()
-    ->records('example.com', type: RecordType::TXT)
-    ->each(fn (Record $record) => /* ... */);
-```
-
-### Premium DNS
-
-Every zone method takes a `provider` argument. Pass `'sectigo'` to work with a premium DNS zone:
-
-```php
-Openprovider::zones()->find('example.com', provider: 'sectigo');
-```
-
-## Managing zones
-
-```php
-use SpitsOnline\Openprovider\Facades\Openprovider;
-
-// One page, or every zone lazily
-$page = Openprovider::zones()->list(limit: 100, offset: 0, namePattern: 'example*', withRecords: false);
-$page->items;      // list<Zone>
-$page->total;      // across all pages
-$page->hasMore();  // whether another page follows
-
-Openprovider::zones()->all(namePattern: 'example*')->each(/* ... */);
-
-Openprovider::zones()->create('example.com', records: [$mx]);
-
-// A slave zone copies its records from a master server
-Openprovider::zones()->create('example.com', masterIp: '192.0.2.1');
-
-Openprovider::zones()->delete('example.com');
-```
-
-`create()` also takes `isDnssecEnabled`, a `template` name and a `provider`. Openprovider can't restore a deleted zone.
+Openprovider can't restore a deleted zone.
 
 ## Managing domains
 
+Openprovider addresses a domain by its id. Pick one with `Openprovider::domain()`, which sends no request; every action after it sends one:
+
 ```php
 use SpitsOnline\Openprovider\Facades\Openprovider;
 
-$domain = Openprovider::domains()->find(1222095);
-$domain = Openprovider::domains()->findByName('example.com'); // or null
+Openprovider::domain(1222095)->renew();
+```
+
+With only the name, look the domain up first. That's one request, because Openprovider needs the id. The `Domain` you get back can act on itself, like an Eloquent model:
+
+```php
+$domain = Openprovider::domains()->find('example.com'); // or null
+
+$domain->renew();
+$domain->lock();
+```
+
+### Reading a domain
+
+```php
+$domain = Openprovider::domain(1222095)->get();
 
 $domain->id;                     // 1222095
 (string) $domain->name;           // "example.com"
@@ -252,6 +302,12 @@ $domain->renewalDate;             // CarbonImmutable or null
 $domain->raw;                     // the full answer from Openprovider
 ```
 
+List every domain lazily. The pattern matches the name without its extension:
+
+```php
+Openprovider::domains()->get(pattern: 'example*', status: 'ACT')->each(/* ... */);
+```
+
 Every method that takes a domain name accepts a string or a `DomainName`. `DomainName::parse()` splits a name the way Openprovider wants it, and throws `InvalidDomainName` for a name without an extension:
 
 ```php
@@ -260,16 +316,6 @@ use SpitsOnline\Openprovider\Data\DomainName;
 $name = DomainName::parse('example.co.uk');
 $name->name;       // "example"
 $name->extension;  // "co.uk"
-```
-
-List domains a page at a time, or all of them lazily. The pattern matches the name without its extension:
-
-```php
-$page = Openprovider::domains()->list(limit: 100, offset: 0, pattern: 'example*', status: 'ACT');
-$page->items;      // list<Domain>
-$page->hasMore();  // whether another page follows
-
-Openprovider::domains()->all(pattern: 'example*', status: 'ACT')->each(/* ... */);
 ```
 
 ### Registering a domain
@@ -294,12 +340,12 @@ Then register it. Contact handles are Openprovider customer handles. Openprovide
 use SpitsOnline\Openprovider\Data\Nameserver;
 use SpitsOnline\Openprovider\Enums\Autorenew;
 
-$domain = Openprovider::domains()->create(
+$domain = Openprovider::domains()->register(
     'example.com',
-    ownerHandle: 'CV904717-NL',
-    adminHandle: 'CV904717-NL',
-    techHandle: 'CV904717-NL',
-    billingHandle: 'CV904717-NL',
+    owner: 'CV904717-NL',
+    admin: 'CV904717-NL',
+    tech: 'CV904717-NL',
+    billing: 'CV904717-NL',
     period: 1,
     nameServers: ['ns1.op.eu', Nameserver::create('ns2.example.com', ip: '192.0.2.2')],
     autorenew: Autorenew::ON,
@@ -311,35 +357,35 @@ Name servers are names, or `Nameserver` objects when they need a glue IP (`ip`, 
 To transfer a domain in, use `transfer()` with the same arguments, except `period`, plus its `authCode`:
 
 ```php
-$domain = Openprovider::domains()->transfer('example.com', authCode: 'abc123', ownerHandle: 'CV904717-NL');
+$domain = Openprovider::domains()->transfer('example.com', authCode: 'abc123', owner: 'CV904717-NL');
 ```
 
-`create()`, `transfer()` and `update()` take an `attributes` array for any other field Openprovider documents for that request, such as `['promo_code' => 'SPRING']`.
+`register()`, `transfer()` and `update()` take an `attributes` array for any other field Openprovider documents for that request, such as `['promo_code' => 'SPRING']`.
 
 ### Changing a domain
 
 `update()` only changes the arguments you pass:
 
 ```php
-Openprovider::domains()->update(
-    $domain->id,
-    nsGroup: 'my-nameservers',
-    isLocked: true,
-);
+Openprovider::domain($id)->update(nsGroup: 'my-nameservers', autorenew: Autorenew::ON);
 ```
 
-It also takes `nameServers`, `autorenew`, `isPrivateWhoisEnabled`, the four contact handles and `comments`.
+It also takes `nameServers`, `isLocked`, `isPrivateWhoisEnabled`, the four contact handles (`owner`, `admin`, `tech`, `billing`) and `comments`.
 
-The other domain methods:
+The other domain actions, the same on `Openprovider::domain($id)` and on a `Domain` you fetched:
 
 ```php
-Openprovider::domains()->renew($domain->id, period: 2);
-Openprovider::domains()->restore($domain->id);
-Openprovider::domains()->delete($domain->id);
+$domain->lock();     // can't be transferred away
+$domain->unlock();
+$domain->renew(period: 2);
+$domain->restore();
+$domain->delete();
 
-$code = Openprovider::domains()->authCode($domain->id);
-$code = Openprovider::domains()->resetAuthCode($domain->id);
+$code = $domain->authCode();
+$code = $domain->resetAuthCode();
 ```
+
+A `Domain` or `ZoneRecord` in a queued job is serialized without the Openprovider client, so the password never ends up in your queue. After it's unserialized, it acts through the account in your config.
 
 ## DNS record routes
 
@@ -374,7 +420,7 @@ return [
 ];
 ```
 
-A record in a request body has the same fields as `Record::create()`:
+A record in a request body uses Openprovider's fields:
 
 ```json
 {
@@ -387,7 +433,7 @@ A record in a request body has the same fields as `Record::create()`:
 }
 ```
 
-Invalid requests get Laravel's standard `422` validation response. Changes answer `204 No Content`. Each request may send a `provider` to change a premium DNS zone.
+Invalid requests get Laravel's standard `422` validation response. Changes answer `204 No Content`. Each request may send a `provider` (`sectigo`) to work with a premium DNS zone. MX records need a `prio`.
 
 ### Exporting a zone to Excel
 
@@ -414,15 +460,15 @@ Like the DNS record routes, it runs behind `web` and `auth` by default, and take
 
 The download is named `dns_zone_{domain}.xlsx`. Pass `?filename=example` to name it `example.xlsx` instead. The name may contain letters, digits, spaces, dots, dashes and underscores.
 
-You can also use the export in your own code:
+You can also use the export in your own code. `ZoneExport::fromZone()` exports every record, the SOA record first; `new ZoneExport($records)` exports the records you pass:
 
 ```php
 use Maatwebsite\Excel\Facades\Excel;
 use SpitsOnline\Openprovider\Exports\ZoneExport;
 
-$records = Openprovider::zones()->find('example.com')->records;
+$zone = Openprovider::zone('example.com')->get();
 
-return Excel::download(new ZoneExport($records), 'example.com.xlsx');
+return Excel::download(ZoneExport::fromZone($zone), 'example.com.xlsx');
 ```
 
 ## Error handling
@@ -435,13 +481,14 @@ Every exception extends `SpitsOnline\Openprovider\Exceptions\OpenproviderExcepti
 | `ConnectionFailed` | Openprovider couldn't be reached. |
 | `MissingConfiguration` | The username or password isn't set. The message names the env key. |
 | `InvalidDomainName` | A domain name has no extension, such as `localhost`. |
+| `InvalidRecord` | `Record::fromArray()` gets an SOA record, which Openprovider generates and can't be added, changed or deleted. |
 | `MissingDependency` | The export route is used without `maatwebsite/excel`. |
 
 ```php
 use SpitsOnline\Openprovider\Exceptions\RequestFailed;
 
 try {
-    $domain = Openprovider::domains()->find($id);
+    Openprovider::domain($id)->renew();
 } catch (RequestFailed $e) {
     report($e);
 
@@ -451,7 +498,7 @@ try {
 
 ## Testing your app
 
-`Openprovider::fake()` swaps the client for an in-memory Openprovider. Seed it with zones and domains; changes apply to the seeded data, and you can assert on them:
+`Openprovider::fake()` swaps the client for an in-memory Openprovider. It answers the same requests Openprovider does, so everything in this README works on it, including `$record->delete()` and `$domain->renew()`. Seed it with zones and domains; changes apply to the seeded data, and you can assert on them:
 
 ```php
 use SpitsOnline\Openprovider\Data\Record;
@@ -459,9 +506,7 @@ use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Facades\Openprovider;
 
 $fake = Openprovider::fake()
-    ->withZone('example.com', [
-        Record::create(type: RecordType::A, value: '1.2.3.4'),
-    ])
+    ->withZone('example.com', Record::create(RecordType::A, '1.2.3.4'), Record::create(RecordType::MX, 'mail.example.com'))
     ->withDomain('example.com');
 
 // ... run the code under test ...
@@ -471,19 +516,21 @@ Openprovider::assertRecordAdded(
     fn (Record $record) => $record->value === '5.6.7.8',
 );
 Openprovider::assertRecordUpdated('example.com');
-Openprovider::assertRecordRemoved('example.com');
+Openprovider::assertRecordDeleted('example.com', fn (Record $record) => $record->type === RecordType::MX);
 Openprovider::assertZoneCreated('example.nl');
 Openprovider::assertZoneDeleted('example.nl');
 Openprovider::assertDomainRegistered('example.nl');
 Openprovider::assertDomainTransferred('example.org');
-Openprovider::assertDomainUpdated(1, fn (array $changes) => /* ... */);
+Openprovider::assertDomainUpdated(1, fn (array $changes) => $changes === ['is_locked' => true]);
 Openprovider::assertDomainRenewed(1);
 Openprovider::assertDomainRestored(1);
 Openprovider::assertDomainDeleted(1);
 Openprovider::assertNothingChanged();
 ```
 
-A zone or domain that wasn't seeded throws `RequestFailed` with status `404`. `check()` reports seeded domains as `in use` and every other name as `free`.
+The record callbacks get each record as your code sent it. `assertDomainUpdated()` gets the changed fields in Openprovider's keys.
+
+The fake stores records the way Openprovider does: under their full name (`www` becomes `www.example.com`) and with TXT values quoted. A zone or domain that wasn't seeded throws `RequestFailed` with status `404`. `check()` reports seeded domains as `in use` and every other name as `free`, and `authCode()` returns `OpenproviderFake::AUTH_CODE`.
 
 ## Testing
 

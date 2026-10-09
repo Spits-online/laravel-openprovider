@@ -31,7 +31,7 @@ class ExportController
 
         $filename = $this->filename($request, "dns_zone_{$domain}");
 
-        return Excel::download(new ZoneExport($this->openprovider->zones()->find($domain)->records), $filename);
+        return Excel::download(ZoneExport::fromZone($this->openprovider->zone($domain)->get()), $filename);
     }
 
     /**

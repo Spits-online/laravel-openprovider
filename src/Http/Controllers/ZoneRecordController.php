@@ -12,9 +12,11 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Fluent;
 use Illuminate\Validation\Rule;
 use SpitsOnline\Openprovider\Data\Record;
+use SpitsOnline\Openprovider\Enums\Provider;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Enums\Ttl;
 use SpitsOnline\Openprovider\Openprovider;
+use SpitsOnline\Openprovider\Resources\ZoneResource;
 
 /**
  * The opt-in DNS record routes. See `routes.enabled` in `config/openprovider.php`.
@@ -25,16 +27,18 @@ class ZoneRecordController
         protected Openprovider $openprovider,
     ) {}
 
-    public function show(string $domain): JsonResponse
+    public function show(Request $request, string $domain): JsonResponse
     {
-        return ResponseFactory::json(['data' => $this->openprovider->zones()->find($domain)->toArray()]);
+        $input = $this->validate($request, []);
+
+        return ResponseFactory::json(['data' => $this->zone($domain, $input)->get()->toArray()]);
     }
 
     public function store(Request $request, string $domain): Response
     {
         $input = $this->validate($request, $this->recordRules('record'));
 
-        $this->openprovider->zones()->addRecords($domain, [Record::fromArray($input->array('record'))], $this->provider($input));
+        $this->zone($domain, $input)->records()->add(Record::fromArray($input->array('record')));
 
         return ResponseFactory::noContent();
     }
@@ -46,11 +50,9 @@ class ZoneRecordController
             ...$this->recordRules('record'),
         ]);
 
-        $this->openprovider->zones()->updateRecord(
-            $domain,
+        $this->zone($domain, $input)->records()->update(
             Record::fromArray($input->array('original_record')),
             Record::fromArray($input->array('record')),
-            $this->provider($input),
         );
 
         return ResponseFactory::noContent();
@@ -63,28 +65,31 @@ class ZoneRecordController
             ...$this->recordRules('records.*', existing: true),
         ]);
 
-        $this->openprovider->zones()->removeRecords($domain, Record::listFrom($input->array('records')), $this->provider($input));
+        $this->zone($domain, $input)->records()->delete(...Record::listFrom($input->array('records')));
 
         return ResponseFactory::noContent();
     }
 
     /**
-     * Validate the request, which may name the DNS provider of a premium zone.
+     * Validate the request, which may name the provider of a premium DNS zone.
      *
      * @param  array<string, list<mixed>>  $rules
      * @return Fluent<array-key, mixed>
      */
     protected function validate(Request $request, array $rules): Fluent
     {
-        return new Fluent(Validator::validate($request->all(), ['provider' => ['nullable', 'string'], ...$rules]));
+        return new Fluent(Validator::validate($request->all(), ['provider' => ['nullable', Rule::enum(Provider::class)], ...$rules]));
     }
 
     /**
      * @param  Fluent<array-key, mixed>  $input
      */
-    protected function provider(Fluent $input): ?string
+    protected function zone(string $domain, Fluent $input): ZoneResource
     {
-        return $input->string('provider')->value() ?: null;
+        $zone = $this->openprovider->zone($domain);
+        $provider = $input->enum('provider', Provider::class);
+
+        return $provider === null ? $zone : $zone->provider($provider);
     }
 
     /**

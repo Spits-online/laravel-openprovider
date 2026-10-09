@@ -14,7 +14,9 @@ use Illuminate\Support\Str;
 use SpitsOnline\Openprovider\Exceptions\ConnectionFailed;
 use SpitsOnline\Openprovider\Exceptions\MissingConfiguration;
 use SpitsOnline\Openprovider\Exceptions\RequestFailed;
+use SpitsOnline\Openprovider\Resources\DomainResource;
 use SpitsOnline\Openprovider\Resources\Domains;
+use SpitsOnline\Openprovider\Resources\ZoneResource;
 use SpitsOnline\Openprovider\Resources\Zones;
 
 class Openprovider
@@ -47,14 +49,37 @@ class Openprovider
         );
     }
 
+    /**
+     * Every DNS zone in the account, and creating new ones.
+     */
     public function zones(): Zones
     {
         return new Zones($this);
     }
 
+    /**
+     * One DNS zone, by name. Sends no request until you call a method on it.
+     */
+    public function zone(string $name): ZoneResource
+    {
+        return new ZoneResource($this, $name);
+    }
+
+    /**
+     * Every domain in the account, and registering or transferring new ones.
+     */
     public function domains(): Domains
     {
         return new Domains($this);
+    }
+
+    /**
+     * One domain, by its Openprovider id. Sends no request until you call a method on
+     * it. Only have the name? `domains()->find('example.com')` looks it up.
+     */
+    public function domain(int $id): DomainResource
+    {
+        return new DomainResource($this, $id);
     }
 
     /**

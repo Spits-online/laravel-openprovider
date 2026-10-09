@@ -13,10 +13,18 @@ use SpitsOnline\Openprovider\Facades\Openprovider;
 
 const DOMAINS = OPENPROVIDER.'/domains';
 
-it('finds a domain', function () {
+it('picks a domain without sending a request', function () {
+    fakeOpenprovider();
+
+    Openprovider::domain(1222095);
+
+    Http::assertNothingSent();
+});
+
+it('gets a domain by its id', function () {
     fakeOpenprovider(['domains/*' => Http::response(openproviderFixture('domain'))]);
 
-    $domain = Openprovider::domains()->find(1222095);
+    $domain = Openprovider::domain(1222095)->get();
 
     expect($domain)
         ->id->toBe(1222095)
@@ -41,29 +49,23 @@ it('finds a domain', function () {
     Http::assertSent(fn (Request $request) => $request->method() === 'GET' && $request->url() === DOMAINS.'/1222095');
 });
 
-it('lists a page of domains', function () {
+it('lists every domain lazily, a page at a time', function () {
     fakeOpenprovider(['domains*' => Http::response(openproviderFixture('domains'))]);
 
-    $page = Openprovider::domains()->list(limit: 2, pattern: 'greatdomain*', status: 'ACT');
+    $domains = Openprovider::domains()->get(pattern: 'greatdomain*', status: 'ACT');
+    Http::assertNothingSent();
 
-    expect($page)->total->toBe(2)->items->toHaveCount(2)
-        ->and((string) $page->items[1]->name)->toBe('greatdomain.info');
+    expect($domains->all())->toHaveCount(2)
+        ->and((string) $domains->last()->name)->toBe('greatdomain.info');
 
-    Http::assertSent(fn (Request $request) => $request->url() === DOMAINS.'?limit=2&offset=0&domain_name_pattern=greatdomain%2A&status=ACT');
+    Http::assertSent(fn (Request $request) => $request->url() === DOMAINS.'?limit=100&offset=0&domain_name_pattern=greatdomain%2A&status=ACT');
 });
 
-it('walks every domain lazily', function () {
+it('finds a domain by its full name, in one request', function () {
     fakeOpenprovider(['domains*' => Http::response(openproviderFixture('domains'))]);
 
-    expect(Openprovider::domains()->all()->count())->toBe(2);
-
-    Http::assertSent(fn (Request $request) => $request->url() === DOMAINS.'?limit=100&offset=0');
-});
-
-it('finds a domain by its full name', function () {
-    fakeOpenprovider(['domains*' => Http::response(openproviderFixture('domains'))]);
-
-    expect(Openprovider::domains()->findByName('greatdomain1.info')?->id)->toBe(1222095);
+    expect(Openprovider::domains()->find('greatdomain1.info')?->id)->toBe(1222095);
+    Http::assertSentCount(2);
 
     Http::assertSent(fn (Request $request) => $request->url() === DOMAINS.'?full_name=greatdomain1.info&limit=1');
 });
@@ -71,11 +73,11 @@ it('finds a domain by its full name', function () {
 it('returns null for a name that is not in the account', function () {
     fakeOpenprovider(['domains*' => Http::response(['code' => 0, 'data' => ['results' => [], 'total' => 0]])]);
 
-    expect(Openprovider::domains()->findByName('unknown.com'))->toBeNull();
+    expect(Openprovider::domains()->find('unknown.com'))->toBeNull();
 });
 
 it('rejects a name without an extension', function () {
-    expect(fn () => Openprovider::domains()->findByName('localhost'))
+    expect(fn () => Openprovider::domains()->find('localhost'))
         ->toThrow(InvalidDomainName::class, '`localhost` is not a domain name.');
 });
 
@@ -102,10 +104,10 @@ it('checks whether domains are available', function () {
 it('registers a domain', function () {
     fakeOpenprovider(['domains' => Http::response(openproviderFixture('domain-registered'))]);
 
-    $domain = Openprovider::domains()->create(
+    $domain = Openprovider::domains()->register(
         'greatdomain.info',
-        ownerHandle: 'CV904717-NL',
-        adminHandle: 'CV904717-NL',
+        owner: 'CV904717-NL',
+        admin: 'CV904717-NL',
         nameServers: ['ns1.op.eu', Nameserver::create('ns2.op.nl', ip: '192.0.2.2')],
         autorenew: Autorenew::DEFAULT,
         attributes: ['promo_code' => 'SPRING'],
@@ -128,7 +130,7 @@ it('registers a domain', function () {
 it('transfers a domain', function () {
     fakeOpenprovider(['domains/transfer' => Http::response(openproviderFixture('domain-transferred'))]);
 
-    $domain = Openprovider::domains()->transfer('example.com', authCode: 'gX38tslFG2#%F%%1', ownerHandle: 'CV904717-NL', nsGroup: 'testin');
+    $domain = Openprovider::domains()->transfer('example.com', authCode: 'gX38tslFG2#%F%%1', owner: 'CV904717-NL', nsGroup: 'testin');
 
     expect($domain->status)->toBe('REQ')->and((string) $domain->name)->toBe('example.com');
 
@@ -143,19 +145,29 @@ it('transfers a domain', function () {
 it('updates only what is passed', function () {
     fakeOpenprovider(['domains/*' => Http::response(['code' => 0, 'data' => ['id' => 123456, 'status' => 'ACT']])]);
 
-    Openprovider::domains()->update(123456, autorenew: Autorenew::ON, isLocked: false, ownerHandle: 'XX123456-XX');
+    Openprovider::domain(123456)->update(autorenew: Autorenew::ON, isLocked: false, owner: 'XX123456-XX');
 
     Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
         && $request->url() === DOMAINS.'/123456'
         && $request->data() === ['autorenew' => 'on', 'is_locked' => false, 'owner_handle' => 'XX123456-XX']);
 });
 
+it('locks and unlocks a domain', function () {
+    fakeOpenprovider(['domains/*' => Http::response(['code' => 0, 'data' => ['id' => 123456, 'status' => 'ACT']])]);
+
+    Openprovider::domain(123456)->lock();
+    Openprovider::domain(123456)->unlock();
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'PUT' && $request->data() === ['is_locked' => true]);
+    Http::assertSent(fn (Request $request) => $request->method() === 'PUT' && $request->data() === ['is_locked' => false]);
+});
+
 it('renews, restores and deletes a domain', function () {
     fakeOpenprovider(['domains/*' => Http::response(openproviderFixture('domain-status'))]);
 
-    Openprovider::domains()->renew(123456, period: 2);
-    Openprovider::domains()->restore(123456);
-    Openprovider::domains()->delete(123456);
+    Openprovider::domain(123456)->renew(period: 2);
+    Openprovider::domain(123456)->restore();
+    Openprovider::domain(123456)->delete();
 
     Http::assertSent(fn (Request $request) => $request->method() === 'POST' && $request->url() === DOMAINS.'/123456/renew' && $request->data() === ['period' => 2]);
     Http::assertSent(fn (Request $request) => $request->method() === 'POST' && $request->url() === DOMAINS.'/123456/restore' && $request->body() === '');
@@ -165,8 +177,8 @@ it('renews, restores and deletes a domain', function () {
 it('gets and resets the auth code', function () {
     fakeOpenprovider(['domains/*' => Http::response(openproviderFixture('authcode'))]);
 
-    expect(Openprovider::domains()->authCode(123456))->toBe('12345678')
-        ->and(Openprovider::domains()->resetAuthCode(123456))->toBe('12345678');
+    expect(Openprovider::domain(123456)->authCode())->toBe('12345678')
+        ->and(Openprovider::domain(123456)->resetAuthCode())->toBe('12345678');
 
     Http::assertSent(fn (Request $request) => $request->method() === 'GET' && $request->url() === DOMAINS.'/123456/authcode');
     Http::assertSent(fn (Request $request) => $request->method() === 'POST' && $request->url() === DOMAINS.'/123456/authcode/reset');
@@ -175,6 +187,32 @@ it('gets and resets the auth code', function () {
 it('throws when the answer has no auth code', function () {
     fakeOpenprovider(['domains/*' => Http::response(['code' => 0, 'data' => ['success' => false]])]);
 
-    expect(fn () => Openprovider::domains()->authCode(123456))
+    expect(fn () => Openprovider::domain(123456)->authCode())
         ->toThrow(RequestFailed::class, 'Openprovider could not get the auth code of domain 123456: its answer has no auth code.');
+});
+
+it('lets a domain you fetched act on itself, one request each', function () {
+    fakeOpenprovider([
+        'domains?*' => Http::response(openproviderFixture('domains')),
+        'domains/*' => Http::response(openproviderFixture('domain-status')),
+    ]);
+
+    $domain = Openprovider::domains()->find('greatdomain1.info');
+    $domain->renew();
+    $domain->lock();
+
+    Http::assertSent(fn (Request $request) => $request->method() === 'POST' && $request->url() === DOMAINS.'/1222095/renew');
+    Http::assertSent(fn (Request $request) => $request->method() === 'PUT' && $request->url() === DOMAINS.'/1222095' && $request->data() === ['is_locked' => true]);
+    Http::assertSentCount(4);
+});
+
+it('leaves the client out when a domain is serialized, so a queued job never stores the password', function () {
+    fakeOpenprovider(['domains/*' => Http::response(openproviderFixture('domain'))]);
+    config()->set('openprovider.password', 'secret-password');
+    app()->forgetInstance(SpitsOnline\Openprovider\Openprovider::class);
+
+    $serialized = serialize(Openprovider::domain(1222095)->get());
+
+    expect($serialized)->not->toContain('secret-password')
+        ->and(unserialize($serialized)->id)->toBe(1222095);
 });

@@ -5,22 +5,21 @@ declare(strict_types=1);
 namespace SpitsOnline\Openprovider\Resources;
 
 use Illuminate\Support\Arr;
-use Illuminate\Support\Fluent;
 use Illuminate\Support\LazyCollection;
 use SpitsOnline\Openprovider\Concerns\Paginates;
 use SpitsOnline\Openprovider\Data\Domain;
 use SpitsOnline\Openprovider\Data\DomainCheck;
 use SpitsOnline\Openprovider\Data\DomainName;
 use SpitsOnline\Openprovider\Data\Nameserver;
-use SpitsOnline\Openprovider\Data\Page;
 use SpitsOnline\Openprovider\Enums\Autorenew;
-use SpitsOnline\Openprovider\Exceptions\RequestFailed;
 use SpitsOnline\Openprovider\Openprovider;
 
 /**
- * The domains in the Openprovider account. Contact handles (`$ownerHandle` and the
- * others) are Openprovider customer handles, e.g. `CV904717-NL`.
- * `$attributes` takes any other field Openprovider documents for the request.
+ * Every domain in the account: `Openprovider::domains()`. To work with one domain,
+ * use `Openprovider::domain($id)`, or the `Domain` that `find()` returns.
+ *
+ * Contact handles (`$owner` and the others) are Openprovider customer handles, e.g.
+ * `CV904717-NL`. `$attributes` takes any other field Openprovider documents for the request.
  */
 class Domains
 {
@@ -33,47 +32,34 @@ class Domains
     ) {}
 
     /**
-     * One page of domains. `$pattern` matches the name without its extension and
-     * accepts `*` as a wildcard; `$status` is a status code such as `ACT` or `REQ`.
-     *
-     * @return Page<Domain>
-     */
-    public function list(int $limit = 100, int $offset = 0, ?string $pattern = null, ?string $status = null): Page
-    {
-        $data = $this->openprovider->request('get', 'domains', 'list the domains', Arr::whereNotNull([
-            'limit' => $limit,
-            'offset' => $offset,
-            'domain_name_pattern' => $pattern,
-            'status' => $status,
-        ]));
-
-        return new Page(
-            items: Domain::listFrom($data->array('results')),
-            total: $data->integer('total'),
-            limit: $limit,
-            offset: $offset,
-        );
-    }
-
-    /**
      * Every domain, fetched a page at a time as you iterate.
      *
+     * @param  ?string  $pattern  matches the name without its extension; `*` is a wildcard
+     * @param  ?string  $status  a status code, e.g. `ACT` (active) or `REQ` (requested)
      * @return LazyCollection<int, Domain>
      */
-    public function all(?string $pattern = null, ?string $status = null): LazyCollection
+    public function get(?string $pattern = null, ?string $status = null): LazyCollection
     {
-        return $this->paginate(fn (int $offset) => $this->list(self::PAGE_SIZE, $offset, $pattern, $status));
-    }
+        return $this->paginate(function (int $offset) use ($pattern, $status): array {
+            $data = $this->openprovider->request('get', 'domains', 'list the domains', Arr::whereNotNull([
+                'limit' => self::PAGE_SIZE,
+                'offset' => $offset,
+                'domain_name_pattern' => $pattern,
+                'status' => $status,
+            ]));
 
-    public function find(int $id): Domain
-    {
-        return Domain::fromArray($this->openprovider->request('get', $this->path($id), "find domain {$id}")->toArray());
+            return [$data->array('results'), $data->integer('total')];
+        })
+            ->filter(fn (mixed $domain) => is_array($domain))
+            ->map(fn (array $domain) => Domain::fromArray($domain, $this->openprovider))
+            ->values();
     }
 
     /**
-     * The domain with this name, or null when it isn't in the account.
+     * The domain with this name, or null when it isn't in the account. One request:
+     * Openprovider addresses domains by id, so a name has to be looked up.
      */
-    public function findByName(DomainName|string $name): ?Domain
+    public function find(DomainName|string $name): ?Domain
     {
         $name = (string) DomainName::parse($name);
 
@@ -82,7 +68,9 @@ class Domains
             'limit' => 1,
         ]);
 
-        return Domain::listFrom($data->array('results'))[0] ?? null;
+        $domain = Arr::first($data->array('results'));
+
+        return is_array($domain) ? Domain::fromArray($domain, $this->openprovider) : null;
     }
 
     /**
@@ -108,12 +96,12 @@ class Domains
      * @param  list<Nameserver|string>  $nameServers
      * @param  array<string, mixed>  $attributes
      */
-    public function create(
+    public function register(
         DomainName|string $name,
-        string $ownerHandle,
-        ?string $adminHandle = null,
-        ?string $techHandle = null,
-        ?string $billingHandle = null,
+        string $owner,
+        ?string $admin = null,
+        ?string $tech = null,
+        ?string $billing = null,
         int $period = 1,
         array $nameServers = [],
         ?string $nsGroup = null,
@@ -124,17 +112,17 @@ class Domains
 
         $data = $this->openprovider->request('post', 'domains', "register `{$name}`", body: Arr::whereNotNull([
             'domain' => $name->toArray(),
-            'owner_handle' => $ownerHandle,
-            'admin_handle' => $adminHandle,
-            'tech_handle' => $techHandle,
-            'billing_handle' => $billingHandle,
+            'owner_handle' => $owner,
+            'admin_handle' => $admin,
+            'tech_handle' => $tech,
+            'billing_handle' => $billing,
             'period' => $period,
-            'name_servers' => $this->nameServers($nameServers),
+            'name_servers' => self::nameServers($nameServers),
             'ns_group' => $nsGroup,
             'autorenew' => $autorenew?->value,
         ]) + $attributes);
 
-        return Domain::fromArray(['domain' => $name->toArray()] + $data->toArray());
+        return Domain::fromArray(['domain' => $name->toArray()] + $data->toArray(), $this->openprovider);
     }
 
     /**
@@ -146,10 +134,10 @@ class Domains
     public function transfer(
         DomainName|string $name,
         string $authCode,
-        string $ownerHandle,
-        ?string $adminHandle = null,
-        ?string $techHandle = null,
-        ?string $billingHandle = null,
+        string $owner,
+        ?string $admin = null,
+        ?string $tech = null,
+        ?string $billing = null,
         array $nameServers = [],
         ?string $nsGroup = null,
         ?Autorenew $autorenew = null,
@@ -160,116 +148,26 @@ class Domains
         $data = $this->openprovider->request('post', 'domains/transfer', "transfer `{$name}`", body: Arr::whereNotNull([
             'domain' => $name->toArray(),
             'auth_code' => $authCode,
-            'owner_handle' => $ownerHandle,
-            'admin_handle' => $adminHandle,
-            'tech_handle' => $techHandle,
-            'billing_handle' => $billingHandle,
-            'name_servers' => $this->nameServers($nameServers),
+            'owner_handle' => $owner,
+            'admin_handle' => $admin,
+            'tech_handle' => $tech,
+            'billing_handle' => $billing,
+            'name_servers' => self::nameServers($nameServers),
             'ns_group' => $nsGroup,
             'autorenew' => $autorenew?->value,
         ]) + $attributes);
 
-        return Domain::fromArray(['domain' => $name->toArray()] + $data->toArray());
-    }
-
-    /**
-     * Change a domain. Only the arguments you pass are changed.
-     *
-     * @param  ?list<Nameserver|string>  $nameServers
-     * @param  array<string, mixed>  $attributes
-     */
-    public function update(
-        int $id,
-        ?array $nameServers = null,
-        ?string $nsGroup = null,
-        ?Autorenew $autorenew = null,
-        ?bool $isLocked = null,
-        ?bool $isPrivateWhoisEnabled = null,
-        ?string $ownerHandle = null,
-        ?string $adminHandle = null,
-        ?string $techHandle = null,
-        ?string $billingHandle = null,
-        ?string $comments = null,
-        array $attributes = [],
-    ): void {
-        $this->openprovider->request('put', $this->path($id), "update domain {$id}", body: Arr::whereNotNull([
-            'name_servers' => $nameServers === null ? null : $this->nameServers($nameServers),
-            'ns_group' => $nsGroup,
-            'autorenew' => $autorenew?->value,
-            'is_locked' => $isLocked,
-            'is_private_whois_enabled' => $isPrivateWhoisEnabled,
-            'owner_handle' => $ownerHandle,
-            'admin_handle' => $adminHandle,
-            'tech_handle' => $techHandle,
-            'billing_handle' => $billingHandle,
-            'comments' => $comments,
-        ]) + $attributes);
-    }
-
-    /**
-     * Renew a domain.
-     *
-     * @param  int  $period  the number of renewals; a yearly domain is renewed a year each
-     */
-    public function renew(int $id, int $period = 1): void
-    {
-        $this->openprovider->request('post', $this->path($id).'/renew', "renew domain {$id}", body: ['period' => $period]);
-    }
-
-    /**
-     * Restore a deleted domain.
-     */
-    public function restore(int $id): void
-    {
-        $this->openprovider->request('post', $this->path($id).'/restore', "restore domain {$id}");
-    }
-
-    public function delete(int $id): void
-    {
-        $this->openprovider->request('delete', $this->path($id), "delete domain {$id}");
-    }
-
-    /**
-     * The domain's transfer auth code.
-     */
-    public function authCode(int $id): string
-    {
-        $data = $this->openprovider->request('get', $this->path($id).'/authcode', "get the auth code of domain {$id}");
-
-        return $this->authCodeFrom($data, "get the auth code of domain {$id}");
-    }
-
-    /**
-     * Replace the domain's auth code with a new one, and return it.
-     */
-    public function resetAuthCode(int $id): string
-    {
-        $data = $this->openprovider->request('post', $this->path($id).'/authcode/reset', "reset the auth code of domain {$id}");
-
-        return $this->authCodeFrom($data, "reset the auth code of domain {$id}");
-    }
-
-    /**
-     * @param  Fluent<array-key, mixed>  $data
-     */
-    protected function authCodeFrom(Fluent $data, string $action): string
-    {
-        $authCode = $data->string('auth_code')->value();
-
-        return $authCode !== '' ? $authCode : throw RequestFailed::unexpected($action, 'auth code', $data->toArray());
+        return Domain::fromArray(['domain' => $name->toArray()] + $data->toArray(), $this->openprovider);
     }
 
     /**
      * @param  list<Nameserver|string>  $nameServers
      * @return ?list<array<string, string>>
+     *
+     * @internal
      */
-    protected function nameServers(array $nameServers): ?array
+    public static function nameServers(array $nameServers): ?array
     {
         return array_map(fn (Nameserver|string $nameserver) => Nameserver::from($nameserver)->toArray(), $nameServers) ?: null;
-    }
-
-    protected function path(int $id): string
-    {
-        return "domains/{$id}";
     }
 }

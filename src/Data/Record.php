@@ -9,43 +9,62 @@ use Illuminate\Support\Str;
 use SpitsOnline\Openprovider\Concerns\ListsFromArray;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Enums\Ttl;
+use SpitsOnline\Openprovider\Exceptions\InvalidRecord;
 
 /**
- * A DNS record. Build one with `Record::create()`; records read from Openprovider keep
- * the full payload in `$raw`.
+ * A DNS record to add to a zone. Build one with `Record::create()`. A record read
+ * from a zone is a `ZoneRecord`, which can also update and delete itself.
  */
 final readonly class Record
 {
     use ListsFromArray;
 
     /**
+     * The priority an MX record gets when you don't pass one. Openprovider requires one.
+     */
+    public const int DEFAULT_MX_PRIORITY = 10;
+
+    /**
      * @param  string  $name  the host before the zone name, e.g. `www`; empty for the zone itself
      * @param  array<array-key, mixed>  $raw
+     *
+     * @throws InvalidRecord for an SOA record, which Openprovider generates
      */
     public function __construct(
         public RecordType $type,
         public string $value,
         public string $name = '',
         public int $ttl = Ttl::FIFTEEN_MINUTES->value,
-        public ?int $prio = null,
+        public ?int $priority = null,
         public array $raw = [],
-    ) {}
+    ) {
+        if (! $type->isEditable()) {
+            throw InvalidRecord::readOnly($type);
+        }
+    }
 
     /**
-     * @param  ?int  $prio  the priority, which Openprovider requires for MX records
+     * @param  string  $name  the host before the zone name, e.g. `www`; leave it out for the zone itself
+     * @param  ?int  $priority  for MX and SRV records; an MX record gets 10 when you leave it out
+     *
+     * @throws InvalidRecord for an SOA record, which Openprovider generates
      */
     public static function create(
         RecordType $type,
         string $value,
         string $name = '',
         Ttl $ttl = Ttl::FIFTEEN_MINUTES,
-        ?int $prio = null,
+        ?int $priority = null,
     ): self {
-        return new self($type, $value, $name, $ttl->value, $prio);
+        return new self($type, $value, $name, $ttl->value, $priority ?? ($type === RecordType::MX ? self::DEFAULT_MX_PRIORITY : null));
     }
 
     /**
+     * A record from Openprovider's payload, as a route receives it or Openprovider returns it.
+     *
      * @param  array<array-key, mixed>  $payload
+     *
+     * @throws InvalidRecord for an SOA record, which Openprovider generates
      */
     public static function fromArray(array $payload): self
     {
@@ -56,7 +75,7 @@ final readonly class Record
             value: $data->string('value')->value(),
             name: $data->string('name')->value(),
             ttl: $data->integer('ttl'),
-            prio: $data->filled('prio') ? $data->integer('prio') : null,
+            priority: $data->filled('prio') ? $data->integer('prio') : null,
             raw: $payload,
         );
     }
@@ -73,14 +92,14 @@ final readonly class Record
             'type' => $this->type->value,
             'value' => $this->value,
             'ttl' => $this->ttl,
-            ...($this->prio === null ? [] : ['prio' => $this->prio]),
+            ...($this->priority === null ? [] : ['prio' => $this->priority]),
         ];
     }
 
     /**
      * The record as Openprovider stores it. Openprovider saves a TXT value wrapped in
-     * quotes, and only removes or updates a TXT record when its value is quoted the
-     * same way, so a record built with `Record::create()` is quoted to match.
+     * quotes, and only deletes or updates a TXT record when its value is quoted the
+     * same way, so a TXT record you built is quoted to match.
      */
     public function stored(): self
     {
@@ -88,14 +107,14 @@ final readonly class Record
             return $this;
         }
 
-        return new self($this->type, Str::wrap($this->value, '"'), $this->name, $this->ttl, $this->prio, $this->raw);
+        return new self($this->type, Str::wrap($this->value, '"'), $this->name, $this->ttl, $this->priority, $this->raw);
     }
 
     /**
      * Whether both records describe the same DNS entry, ignoring `$raw` and TXT quotes.
      */
-    public function is(self $record): bool
+    public function is(self|ZoneRecord $record): bool
     {
-        return $this->stored()->toArray() === $record->stored()->toArray();
+        return $this->stored()->toArray() === ($record instanceof ZoneRecord ? $record->toRecord() : $record)->stored()->toArray();
     }
 }

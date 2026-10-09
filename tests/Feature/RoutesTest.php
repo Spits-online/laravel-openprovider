@@ -50,9 +50,7 @@ function record(string $value = '1.2.3.4', array $overrides = []): array
 
 function fakeZone(): OpenproviderFake
 {
-    return Openprovider::fake()->withZone('demo-domain.nl', [
-        Record::create(type: RecordType::A, value: '1.2.3.4', name: 'www'),
-    ]);
+    return Openprovider::fake()->withZone('demo-domain.nl', Record::create(RecordType::A, '1.2.3.4', 'www'));
 }
 
 it('registers no routes unless the app enables them', function () {
@@ -142,8 +140,8 @@ it('removes records', function () {
         ->deleteJson('dns-zone/records/demo-domain.nl', ['records' => [record()]])
         ->assertNoContent();
 
-    $fake->assertRecordRemoved('demo-domain.nl');
-    expect(Openprovider::zones()->find('demo-domain.nl')->records)->toBe([]);
+    $fake->assertRecordDeleted('demo-domain.nl');
+    expect(Openprovider::zone('demo-domain.nl')->get()->records)->toBe([]);
 });
 
 it('validates a new record', function (array $record, string $field) {
@@ -167,7 +165,8 @@ it('validates a new record', function (array $record, string $field) {
 
 it('accepts any stored TTL on the record being changed', function () {
     enableRoutes();
-    $fake = Openprovider::fake()->withZone('demo-domain.nl', [new Record(RecordType::A, '1.2.3.4', 'www', 600)]);
+    // A TTL Openprovider stored, but that a record you build can't have.
+    $fake = Openprovider::fake()->withZone('demo-domain.nl', Record::fromArray(['name' => 'www', 'type' => 'A', 'value' => '1.2.3.4', 'ttl' => 600]));
 
     $this->actingAs(new User)
         ->putJson('dns-zone/records/demo-domain.nl', [
@@ -230,4 +229,13 @@ it('refuses a trailing newline in the filename when the app does not trim input'
         ->actingAs(new User)
         ->getJson('dns-zone/export/records/demo-domain.nl?filename='.urlencode("zone\n"))
         ->assertJsonValidationErrors('filename');
+});
+
+it('only accepts a premium DNS provider Openprovider has', function () {
+    enableRoutes();
+    fakeZone();
+
+    $this->actingAs(new User)
+        ->getJson('dns-zone/records/demo-domain.nl?provider=unknown')
+        ->assertJsonValidationErrors('provider');
 });

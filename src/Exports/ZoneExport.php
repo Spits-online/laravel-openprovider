@@ -16,24 +16,35 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use SpitsOnline\Openprovider\Data\Record;
+use SpitsOnline\Openprovider\Data\SoaRecord;
+use SpitsOnline\Openprovider\Data\Zone;
+use SpitsOnline\Openprovider\Data\ZoneRecord;
 
 /**
  * The records of a DNS zone as a spreadsheet: one row per record, with a bold,
  * filterable heading row. Needs `maatwebsite/excel`.
  *
- * @implements WithMapping<Record>
+ * @implements WithMapping<Record|ZoneRecord|SoaRecord>
  */
 class ZoneExport implements FromCollection, WithColumnFormatting, WithEvents, WithHeadings, WithMapping, WithStyles
 {
     /**
-     * @param  iterable<array-key, Record>  $records
+     * @param  iterable<array-key, Record|ZoneRecord|SoaRecord>  $records
      */
     public function __construct(
         protected iterable $records,
     ) {}
 
     /**
-     * @return Collection<int, Record>
+     * Every record of the zone, its SOA record first.
+     */
+    public static function fromZone(Zone $zone): self
+    {
+        return new self($zone->soa === null ? $zone->records : [$zone->soa, ...$zone->records]);
+    }
+
+    /**
+     * @return Collection<int, Record|ZoneRecord|SoaRecord>
      */
     public function collection(): Collection
     {
@@ -49,12 +60,12 @@ class ZoneExport implements FromCollection, WithColumnFormatting, WithEvents, Wi
     }
 
     /**
-     * @param  Record  $row
+     * @param  Record|ZoneRecord|SoaRecord  $row
      * @return list<int|string>
      */
     public function map(mixed $row): array
     {
-        return [$row->name, $row->type->value, $row->value, $row->prio ?? '-', $row->ttl];
+        return [$row->name, $row->type->value, $row->value, $row->priority ?? '-', $row->ttl];
     }
 
     /**

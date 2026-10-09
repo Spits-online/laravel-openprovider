@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpitsOnline\Openprovider\Concerns;
 
 use Illuminate\Support\LazyCollection;
-use SpitsOnline\Openprovider\Data\Page;
 
 trait Paginates
 {
@@ -15,7 +14,7 @@ trait Paginates
      *
      * @template TItem
      *
-     * @param  callable(int $offset): Page<TItem>  $page
+     * @param  callable(int $offset): array{array<array-key, TItem>, int}  $page  the items from `$offset`, and the total across all pages
      * @return LazyCollection<int, TItem>
      */
     protected function paginate(callable $page): LazyCollection
@@ -24,15 +23,15 @@ trait Paginates
             $offset = 0;
 
             do {
-                $current = $page($offset);
+                [$items, $total] = $page($offset);
 
                 // Not `yield from`: that would restart the keys at 0 on every page.
-                foreach ($current->items as $item) {
+                foreach ($items as $item) {
                     yield $item;
                 }
 
-                $offset += count($current->items);
-            } while ($current->items !== [] && $current->hasMore());
+                $offset += count($items);
+            } while ($items !== [] && $offset < $total);
         });
     }
 }

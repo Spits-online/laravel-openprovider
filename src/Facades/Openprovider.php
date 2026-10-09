@@ -10,12 +10,14 @@ use SpitsOnline\Openprovider\Testing\OpenproviderFake;
 
 /**
  * @method static \SpitsOnline\Openprovider\Resources\Zones zones()
+ * @method static \SpitsOnline\Openprovider\Resources\ZoneResource zone(string $name)
  * @method static \SpitsOnline\Openprovider\Resources\Domains domains()
+ * @method static \SpitsOnline\Openprovider\Resources\DomainResource domain(int $id)
  * @method static void assertZoneCreated(string $name)
  * @method static void assertZoneDeleted(string $name)
  * @method static void assertRecordAdded(string $zone, ?callable $callback = null)
  * @method static void assertRecordUpdated(string $zone, ?callable $callback = null)
- * @method static void assertRecordRemoved(string $zone, ?callable $callback = null)
+ * @method static void assertRecordDeleted(string $zone, ?callable $callback = null)
  * @method static void assertDomainRegistered(string $name)
  * @method static void assertDomainTransferred(string $name)
  * @method static void assertDomainUpdated(int $id, ?callable $callback = null)
