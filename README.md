@@ -28,9 +28,12 @@ use SpitsOnline\Openprovider\Data\Record;
 use SpitsOnline\Openprovider\Enums\RecordType;
 use SpitsOnline\Openprovider\Facades\Openprovider;
 
-Openprovider::zone('example.com')->records()->add(Record::create(RecordType::A, '1.2.3.4', name: 'www'));
+Openprovider::zone('example.com')
+    ->records()
+    ->add(Record::create(RecordType::A, '1.2.3.4', name: 'www'));
 
-Openprovider::zone('example.com')->records()->get(); // every record, as ZoneRecord objects
+// every record, as ZoneRecord objects
+Openprovider::zone('example.com')->records()->get();
 
 Openprovider::domains()->find('example.com')->renew();
 ```
