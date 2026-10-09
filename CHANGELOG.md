@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-10-09
+
 ### Changed
 - The first README example wraps its long lines, so it reads without scrolling.
 
@@ -123,7 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DnsZoneExport` for exporting a DNS zone to `.xlsx` via `maatwebsite/excel`.
 - Publishable `config/openprovider-api.php`.
 
-[Unreleased]: https://github.com/Spits-online/laravel-openprovider/compare/V2.1.0...HEAD
+[Unreleased]: https://github.com/Spits-online/laravel-openprovider/compare/V2.1.1...HEAD
+[2.1.1]: https://github.com/Spits-online/laravel-openprovider/compare/V2.1.0...V2.1.1
 [2.1.0]: https://github.com/Spits-online/laravel-openprovider/compare/V2.0.0...V2.1.0
 [2.0.0]: https://github.com/Spits-online/laravel-openprovider/compare/v1.1.0...V2.0.0
 [1.1.0]: https://github.com/Spits-online/laravel-openprovider/compare/V1.0.1...v1.1.0
